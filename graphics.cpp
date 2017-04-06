@@ -680,12 +680,15 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
 
     for (ObjectRegistryEntry& pe : activeObjects)
     {
-        pe.plugin->update([this](const std::string& sender, int x, int y, int arg, const std::string& data)
-        { this->postEvent(x, y, EvtType::Message, ModKey(), arg, sender, data); });
+        if (pe.plugin)
+        {
+            pe.plugin->update([this](const std::string& sender, int x, int y, int arg, const std::string& data)
+            { this->postEvent(x, y, EvtType::Message, ModKey(), arg, sender, data); });
+        }
     }
 
     // remove dead objects
-    activeObjects.erase(std::remove_if(activeObjects.begin(), activeObjects.end(), [](ObjectRegistryEntry& obj) { return obj.plugin->shouldDelete(); }), activeObjects.end());
+    activeObjects.erase(std::remove_if(activeObjects.begin(), activeObjects.end(), [](ObjectRegistryEntry& obj) { return !obj.plugin || obj.plugin->shouldDelete(); }), activeObjects.end());
 
     if (!musicFile.empty())
     {

@@ -6,11 +6,16 @@
 #include <mutex>
 #include <condition_variable>
 
-class NetworkClient: public QObject
+class NetworkServer;
+
+class NetworkClient : public QObject
 {
     Q_OBJECT
 
     //QMutex       mutex;
+
+    int            connectionId;
+    NetworkServer *server;
 
     std::mutex  commLock;
     std::mutex  botLock;
@@ -25,20 +30,18 @@ class NetworkClient: public QObject
 
      bool         wasDisconnected;
 
+
 public:
 
-    NetworkClient(qintptr socketId);
+    NetworkClient(int id, NetworkServer* server, qintptr socketId);
    ~NetworkClient();
 
     void commUpdate();
     //void handleEvents(std::vector<BotEvent> events, double currentTime);
 
-    bool asyncWait();
-
 private:
     void sendData(QByteArray data);
-    bool handleCommand();
-    bool handleCommand(std::string cmd);
+
 
 public slots:
 

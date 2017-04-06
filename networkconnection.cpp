@@ -1,6 +1,7 @@
 #include "networkconnection.h"
 #include "networkclient.h"
 #include "graphics.h"
+#include <iostream>
 
 NetworkServer::NetworkServer(NetworkConnection& nc, QObject *parent) : QTcpServer(parent), conn(nc)
 {
@@ -10,7 +11,13 @@ NetworkServer::NetworkServer(NetworkConnection& nc, QObject *parent) : QTcpServe
 
 NetworkServer::~NetworkServer()
 {
+    qDebug() << "NetworkServer destructor\n";
+}
 
+void NetworkServer::stopServer()
+{
+    clients.clear();
+    close();
 }
 
 void NetworkServer::startServer()
@@ -31,11 +38,14 @@ void NetworkServer::startServer()
 void NetworkServer::incomingConnection(qintptr socketDescriptor)
 {
     // We have a new connection
-    qDebug() << "Bot Connecting";
+    qDebug() << "Socket connecting on thread: " << QThread::currentThreadId();
 
-    auto networkClient = new NetworkClient(socketDescriptor);
+    clients.emplace_back(new NetworkClient(nextClientId++, this, socketDescriptor));
+}
 
-    conn.addClient(networkClient);
+void NetworkServer::receiver(int connectionId, const std::string& data)
+{
+    conn.receiver(connectionId, data);
 }
 
 NetworkConnection::NetworkConnection(QObject *parent) :
@@ -45,12 +55,9 @@ NetworkConnection::NetworkConnection(QObject *parent) :
 
 NetworkConnection::~NetworkConnection()
 {
-
-}
-
-void NetworkConnection::addClient(NetworkClient* client)
-{
-
+    qDebug() << "Closing\n";
+    server.stopServer();
+    qDebug() << "NetworkConnection destructor\n";
 }
 
 bool NetworkConnection::shouldDelete()
@@ -61,8 +68,25 @@ bool NetworkConnection::shouldDelete()
 void NetworkConnection::update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent)
 {
 
+    if (!started) {
+        server.startServer();
+        started = true;
+    }
+
+
+    for (auto& data : receivedData) {
+        qDebug() << "Sending an event\n";
+        sendEvent("TCP", data.id, 0, 0, data.data);
+    }
+
+    receivedData.clear();
 }
 
+void NetworkConnection::receiver(int connectionId, const std::string& data)
+{
+    qDebug() << connectionId << " Got some data: " << QString(data.c_str()) << "\n";
+    receivedData.push_back({connectionId, data});
+}
 
 namespace mssm
 {

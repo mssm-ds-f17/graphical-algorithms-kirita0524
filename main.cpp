@@ -1,4 +1,7 @@
 #include "graphics.h"
+#include "networkconnection.h"
+#include <iostream>
+#include <QThread>
 
 using namespace std;
 using namespace mssm;
@@ -8,12 +11,17 @@ using namespace mssm;
 
 void graphicsMain(Graphics& g)
 {
+    cout << "Graphics Main" << QThread::currentThreadId() << endl;
+
+    g.registerObject([](QObject* parent)
+    { return new NetworkConnection(parent); });
+
     while (g.draw())
     {
         auto events = g.events();
 
         for (unsigned int i = 0; i < events.size(); ++i) {
-            auto e = events[i];
+            Event e = events[i];
             switch (e.evtType) {
             case EvtType::KeyPress:
                 break;
@@ -27,6 +35,9 @@ void graphicsMain(Graphics& g)
                 break;
             case EvtType::MouseRelease:
                 break;
+            case EvtType::Message:
+                g.out << e.data << endl;
+                break;
             }
         }
     }
@@ -34,5 +45,7 @@ void graphicsMain(Graphics& g)
 
 int main()
 {
+     cout << "Main Thread" << QThread::currentThreadId() << endl;
+
      Graphics g("Graphics App", 300, 300, graphicsMain);
 }

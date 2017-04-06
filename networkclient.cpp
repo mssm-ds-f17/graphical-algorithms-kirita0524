@@ -1,7 +1,7 @@
 #include "networkclient.h"
 #include <sstream>
 #include <qbytearray.h>
-#include <iostream>
+#include "NetworkConnection.h"
 
 using namespace std;
 
@@ -23,9 +23,11 @@ QByteArray clean(QByteArray data)
     return data;
 }
 
-NetworkClient::NetworkClient(qintptr socketId) : gotResponse(false)
+NetworkClient::NetworkClient(int id, NetworkServer* server, qintptr socketId) : QObject(), server{server}, gotResponse(false)
 {
-    //cout << "Constructing AI on Thread: " << QThread::currentThreadId() << endl;
+    connectionId = id;
+
+    qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
     socketDescriptor = socketId;
     socket = new QTcpSocket();
 
@@ -53,6 +55,7 @@ NetworkClient::NetworkClient(qintptr socketId) : gotResponse(false)
 
 NetworkClient::~NetworkClient()
 {
+    qDebug() << "NetworkClient destructing\n";
     if (socket)
     {
         socket->close();
@@ -92,7 +95,7 @@ void NetworkClient::sendData(QByteArray data)
 
 void NetworkClient::readyRead()
 {
-    //cout << "In readyRead: " << QThread::currentThreadId() << endl;
+    qDebug()  << "In readyRead: " << QThread::currentThreadId() << "\n";
 
     // get the information
     QByteArray newdata = socket->readAll();
@@ -109,8 +112,10 @@ void NetworkClient::readyRead()
 
             gotResponse = true;
 
+            server->receiver(connectionId, response);
+
             // will write on server side window
-            //qDebug() << " Received Data: " << clean(QByteArray::fromStdString(response));
+            qDebug() << " Received Data: " << clean(QByteArray::fromStdString(response));
         }
 
         botCv.notify_one();
@@ -119,17 +124,8 @@ void NetworkClient::readyRead()
 
 void NetworkClient::disconnected()
 {
-    std::cout << " Disconnected\n";
+    qDebug()  << " Disconnected\n";
     setDisconnected();
-}
-
-
-
-bool NetworkClient::asyncWait()
-{
-    //cout << "RemoteAI::asyncWait on Thread: " << QThread::currentThreadId() << endl;
-
-    return handleCommand();
 }
 
 void NetworkClient::commUpdate()
@@ -155,7 +151,7 @@ void NetworkClient::commUpdate()
         outgoingData.clear();
     }
 }
-
+/*
 
 bool NetworkClient::handleCommand()
 {
@@ -196,6 +192,7 @@ bool NetworkClient::handleCommand()
 
     return false;
 }
+*/
 
 void NetworkClient::setDisconnected()
 {
