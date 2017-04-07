@@ -32,6 +32,7 @@ protected:
 
     void incomingConnection(qintptr socketDescriptor);
 public:
+    int  connect(const std::string& host, int port);
     void receiver(int connectionId, const std::string& data);
     bool queueToSend(int connectionId, const std::string& data);
     void sendAllQueued();

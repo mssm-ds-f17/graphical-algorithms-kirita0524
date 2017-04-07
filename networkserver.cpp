@@ -44,6 +44,17 @@ void NetworkServer::incomingConnection(qintptr socketDescriptor)
     clients.emplace_back(new NetworkClient(nextClientId++, this, socketDescriptor));
 }
 
+int NetworkServer::connect(const std::string& host, int port)
+{
+    // We have a new connection
+    qDebug() << "Creating socket connection on thread: " << QThread::currentThreadId();
+
+    clients.emplace_back(new NetworkClient(nextClientId, this, host, port));
+
+    return nextClientId++;
+}
+
+
 void NetworkServer::receiver(int connectionId, const std::string& data)
 {
     conn.receiver(connectionId, data);

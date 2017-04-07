@@ -20,25 +20,27 @@ class NetworkClient : public QObject
     std::mutex  commLock;
     std::mutex  botLock;
     std::condition_variable botCv;
-    bool        gotResponse;
+    bool        gotResponse{false};
     std::string response;
 
-    QTcpSocket *socket;
-    qintptr     socketDescriptor;
+    QTcpSocket *socket{nullptr};
     QByteArray  incomingData;
     QByteArray  outgoingData;
 
-     bool         wasDisconnected;
-
+     bool       wasDisconnected;
 
 public:
 
     NetworkClient(int id, NetworkServer* server, qintptr socketId);
+    NetworkClient(int id, NetworkServer* server, const std::string& host, int port);
    ~NetworkClient();
 
     void queueToSend(const std::string& data);
     void sendQueued();
     int id() { return connectionId; }
+
+private:
+    void setSocket(QTcpSocket *socket);
 public slots:
 
     void readyRead();

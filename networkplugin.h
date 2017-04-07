@@ -23,6 +23,7 @@ class NetworkPlugin : public mssm::Plugin
     bool started{false};
 
     std::vector<NetworkData> receivedData;
+    std::vector<NetworkData> requestedConnections;
 
 public:
     explicit NetworkPlugin(QObject *parent = 0);
@@ -32,6 +33,7 @@ public:
     bool shouldDelete() override;
     void update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent) override;
     void call(int arg1, int arg2, const std::string& arg3) override;
+    void requestConnection(const std::string& host, int port);
 
     void receiver(int connectionId, const std::string& data);
 };

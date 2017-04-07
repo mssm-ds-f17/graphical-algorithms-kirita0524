@@ -23,34 +23,61 @@ QByteArray clean(QByteArray data)
     return data;
 }
 
-NetworkClient::NetworkClient(int id, NetworkServer* server, qintptr socketId) : QObject(), server{server}, gotResponse(false)
+NetworkClient::NetworkClient(int clientId, NetworkServer* server, qintptr socketId)
+    : QObject(), server{server}
 {
-    connectionId = id;
-
-    qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
-    socketDescriptor = socketId;
-    socket = new QTcpSocket();
-
+    connectionId = clientId;
     wasDisconnected = false;
 
-    // set the ID
-    if(!socket->setSocketDescriptor(this->socketDescriptor))
+    qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
+    auto s = new QTcpSocket();
+
+    if(!s->setSocketDescriptor(socketId))
     {
         qDebug() << "Error setting socket descriptor";
         return;
     }
-    // connect socket and signal
-    // note - Qt::DirectConnection is used because it's multithreaded
-    // This makes the slot to be invoked immediately, when the signal is emitted.
+
+    setSocket(s);
+}
+
+NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::string& host, int port)
+    : QObject(), server{server}
+{
+    connectionId = clientId;
+    wasDisconnected = false;
+
+    qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
+
+    auto s = new QTcpSocket();
+
+    s->connectToHost(host.c_str(), port);
+
+    if(s->waitForConnected(5000))
+    {
+        qDebug() << "Connected!";
+
+        setSocket(s);
+    }
+    else
+    {
+        qDebug() << "Failed to connect!";
+        wasDisconnected = true;
+    }
+}
+
+void NetworkClient::setSocket(QTcpSocket *socket)
+{
+    this->socket = socket;
+
     connect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
     connect(socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(socketStateChanged(QAbstractSocket::SocketState)), Qt::QueuedConnection);
     connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
 
-    qDebug() << socketDescriptor << " Client connected";
+    qDebug() << socket->socketDescriptor() << " Socket connected";
 
     socket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
-    //socket->write("Blocked 0 0\r\n.\r\n");
 }
 
 NetworkClient::~NetworkClient()

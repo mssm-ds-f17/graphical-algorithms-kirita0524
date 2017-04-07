@@ -24,13 +24,20 @@ bool NetworkPlugin::shouldDelete()
     return false;
 }
 
+void NetworkPlugin::requestConnection(const std::string& host, int port)
+{
+    requestedConnections.push_back({port, host});
+}
+
 void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
 {
-
     // TODO error handling
     switch (arg1) {
     case 1: // send data
         server->queueToSend(arg2, arg3);
+        break;
+    case 2: // make socket connection  (arg2 is port arg3 is hostname)
+        requestConnection(arg3, arg2);
         break;
     }
 }
@@ -50,6 +57,11 @@ void NetworkPlugin::update(std::function<void(const std::string&, int, int, int,
         sendEvent("TCP", 0, 0, data.id, data.data);
     }
 
+    for (auto& conn : requestedConnections) {
+        server->connect(conn.data, conn.id);
+    }
+
+    requestedConnections.clear();
     receivedData.clear();
 }
 
