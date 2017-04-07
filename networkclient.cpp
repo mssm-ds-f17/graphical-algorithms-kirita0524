@@ -55,6 +55,7 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::str
 
     s->connectToHost(host.c_str(), port);
 
+    //TODO: get rid of this?  Just let it all happen asynchronously
     if(s->waitForConnected(5000))
     {
         qDebug() << "Connected!";
@@ -102,6 +103,10 @@ void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
     case QAbstractSocket::ListeningState  : state = "ListeningState"; break;
     case QAbstractSocket::ClosingState    : state = "ClosingState"; break;
     }
+
+    xx
+    server->socketStateChange(connectionId, -1, errMsg);
+
     qDebug() << "Socket State Changed: " << state.c_str();
 }
 
