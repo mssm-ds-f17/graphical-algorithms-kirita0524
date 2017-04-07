@@ -25,6 +25,12 @@ bool FileDownloader::shouldDelete()
     return false;
 }
 
+void FileDownloader::call(int /*arg1*/, int /*arg2*/, const std::string& /*arg3*/)
+{
+
+}
+
+
 void FileDownloader::update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent)
 {
     if (downloadComplete)
@@ -48,7 +54,7 @@ namespace mssm
 
 void download(Graphics& g, const std::string& url)
 {
-    g.registerObject(
+    g.registerPlugin(
                 [url](QObject* parent) { return new FileDownloader(parent, url); });
 }
 

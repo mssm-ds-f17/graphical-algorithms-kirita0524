@@ -1,5 +1,5 @@
 #include "graphics.h"
-#include "networkconnection.h"
+#include "networkplugin.h"
 #include <iostream>
 #include <QThread>
 
@@ -13,8 +13,7 @@ void graphicsMain(Graphics& g)
 {
     cout << "Graphics Main" << QThread::currentThreadId() << endl;
 
-    g.registerObject([](QObject* parent)
-    { return new NetworkConnection(parent); });
+    int networkServerId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
 
     while (g.draw())
     {
@@ -36,7 +35,8 @@ void graphicsMain(Graphics& g)
             case EvtType::MouseRelease:
                 break;
             case EvtType::Message:
-                g.out << e.data << endl;
+                g.out << "Got some data: " << e.data << endl;
+                g.callPlugin(networkServerId, 1, e.arg, "Response!");
                 break;
             }
         }

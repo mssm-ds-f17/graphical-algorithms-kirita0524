@@ -1,7 +1,7 @@
 #include "networkclient.h"
 #include <sstream>
 #include <qbytearray.h>
-#include "NetworkConnection.h"
+#include "networkserver.h"
 
 using namespace std;
 
@@ -82,15 +82,15 @@ Turn(radians);
 
 */
 
-void NetworkClient::sendData(QByteArray data)
+void NetworkClient::queueToSend(const std::string& data)
 {
     //qDebug() << "locking in order to queue data";
 
     std::unique_lock<std::mutex> lock(commLock);
 
-    //qDebug() << "queue data to send: '" << data << "'";
+    qDebug() << "queue data to send: '" << data.c_str() << "'";
 
-    outgoingData.append(data);
+    outgoingData.append(data.c_str());
 }
 
 void NetworkClient::readyRead()
@@ -128,20 +128,20 @@ void NetworkClient::disconnected()
     setDisconnected();
 }
 
-void NetworkClient::commUpdate()
+void NetworkClient::sendQueued()
 {
     std::unique_lock<std::mutex> lock(commLock);
 
     if (outgoingData.size() > 0)
     {
-        //qDebug() << "Found data to send: "  << outgoingData;
+        qDebug() << "Found data to send: "  << outgoingData;
 
         if (socket)
         {
             socket->write(outgoingData);
             socket->flush();
 
-            //cout << "Sending Data on Thread: " << QThread::currentThreadId() << endl;
+            qDebug()  << "Sending Data on Thread: " << QThread::currentThreadId() << "\n";
         }
         else
         {

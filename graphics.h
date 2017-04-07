@@ -68,6 +68,7 @@ namespace mssm
     class ObjectRegistryEntry
     {
     public:
+        int pluginId;
         std::function<Plugin*(QObject*)> factory;
         std::unique_ptr<Plugin>          plugin;
     };
@@ -163,8 +164,9 @@ namespace mssm
         std::string                        musicFile;
         std::unique_ptr<QMediaPlayer>      musicPlayer;
 
-        std::vector<ObjectRegistryEntry>   pendingObjects;
-        std::vector<ObjectRegistryEntry>   activeObjects;
+        int                                nextPluginId{1};
+        std::vector<ObjectRegistryEntry>   pendingPlugins;
+        std::vector<ObjectRegistryEntry>   activePlugins;
 
         std::vector<Event> _events;
         std::vector<Event> _cachedEvents;
@@ -201,9 +203,8 @@ namespace mssm
         std::istream in;
         std::ostream out;
 
-        void   registerObject(std::function<Plugin*(QObject*)> factory);
-
-
+        int    registerPlugin(std::function<Plugin*(QObject*)> factory); // returns pluginId for use by callPlugin
+        bool   callPlugin(int pluginId, int arg1, int arg2, const std::string& arg3); // Note: plugin won't exist until draw has been called
 
         int    width()  { return _width; }
         int    height() { return _height; }

@@ -45,6 +45,12 @@ bool SerialPortReader::shouldDelete()
     return false;
 }
 
+void SerialPortReader::call(int /*arg1*/, int /*arg2*/, const std::string& /*arg3*/)
+{
+
+}
+
+
 void SerialPortReader::update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent)
 {
     if (readData.size() > 0)

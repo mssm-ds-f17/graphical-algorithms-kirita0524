@@ -474,8 +474,8 @@ Graphics::Graphics(std::string title, int width, int height,
         musicPlayer.reset();
     }
 
-    pendingObjects.clear();
-    activeObjects.clear();
+    pendingPlugins.clear();
+    activePlugins.clear();
 
     setClosed();
 
@@ -650,11 +650,28 @@ void Graphics::setMousePos(int x, int y)
     _mousePos.y = y;
 }
 
-void Graphics::registerObject(std::function<Plugin*(QObject*)> factory)
+int Graphics::registerPlugin(std::function<Plugin*(QObject*)> factory)
 {
     std::unique_lock<std::mutex> lock(glock);
-    pendingObjects.push_back(ObjectRegistryEntry{factory, std::unique_ptr<Plugin>()});
+    pendingPlugins.push_back(ObjectRegistryEntry{nextPluginId, factory, std::unique_ptr<Plugin>()});
+    return nextPluginId;
 }
+
+bool Graphics::callPlugin(int pluginId, int arg1, int arg2, const std::string& arg3)
+{
+    std::unique_lock<std::mutex> lock(glock);
+    for (ObjectRegistryEntry& pe : activePlugins)
+    {
+        if (pe.pluginId == pluginId && pe.plugin)
+        {
+            pe.plugin->call(arg1, arg2, arg3);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
 void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int elapsed)
 {
@@ -668,17 +685,17 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
 
     std::unique_lock<std::mutex> lock(glock);
 
-    if (!pendingObjects.empty())
+    if (!pendingPlugins.empty())
     {
-        for (ObjectRegistryEntry& pe : pendingObjects)
+        for (ObjectRegistryEntry& pe : pendingPlugins)
         {
-            activeObjects.push_back(std::move(pe));
-            activeObjects.back().plugin.reset(activeObjects.back().factory(pd));
+            activePlugins.push_back(std::move(pe));
+            activePlugins.back().plugin.reset(activePlugins.back().factory(pd));
         }
-        pendingObjects.clear();
+        pendingPlugins.clear();
     }
 
-    for (ObjectRegistryEntry& pe : activeObjects)
+    for (ObjectRegistryEntry& pe : activePlugins)
     {
         if (pe.plugin)
         {
@@ -688,7 +705,7 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
     }
 
     // remove dead objects
-    activeObjects.erase(std::remove_if(activeObjects.begin(), activeObjects.end(), [](ObjectRegistryEntry& obj) { return !obj.plugin || obj.plugin->shouldDelete(); }), activeObjects.end());
+    activePlugins.erase(std::remove_if(activePlugins.begin(), activePlugins.end(), [](ObjectRegistryEntry& obj) { return !obj.plugin || obj.plugin->shouldDelete(); }), activePlugins.end());
 
     if (!musicFile.empty())
     {

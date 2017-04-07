@@ -26,6 +26,7 @@ public:
     virtual ~SerialPortReader();
     bool shouldDelete() override;
     void update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent) override;
+    void call(int arg1, int arg2, const std::string& arg3) override;
 private slots:
     void handleReadyRead();
     void handleError(QSerialPort::SerialPortError error);

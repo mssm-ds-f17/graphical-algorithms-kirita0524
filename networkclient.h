@@ -36,13 +36,9 @@ public:
     NetworkClient(int id, NetworkServer* server, qintptr socketId);
    ~NetworkClient();
 
-    void commUpdate();
-    //void handleEvents(std::vector<BotEvent> events, double currentTime);
-
-private:
-    void sendData(QByteArray data);
-
-
+    void queueToSend(const std::string& data);
+    void sendQueued();
+    int id() { return connectionId; }
 public slots:
 
     void readyRead();

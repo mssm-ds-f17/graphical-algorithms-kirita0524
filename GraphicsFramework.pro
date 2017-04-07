@@ -13,8 +13,9 @@ SOURCES += \
     filedownloader.cpp \
     plugin.cpp \
     serialportreader.cpp \
-    networkconnection.cpp \
-    networkclient.cpp
+    networkclient.cpp \
+    networkplugin.cpp \
+    networkserver.cpp
 
 HEADERS  += \
     graphics.h \
@@ -25,6 +26,7 @@ HEADERS  += \
     filedownloader.h \
     plugin.h \
     serialportreader.h \
-    networkconnection.h \
-    networkclient.h
+    networkclient.h \
+    networkplugin.h \
+    networkserver.h
 

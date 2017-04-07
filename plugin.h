@@ -15,6 +15,9 @@ class Plugin : public QObject
 public:
     explicit Plugin(QObject *parent);
    ~Plugin();
+
+    virtual void call(int arg1, int arg2, const std::string& arg3) = 0;
+
 private:
     virtual bool shouldDelete() = 0;
     virtual void update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent) = 0;
