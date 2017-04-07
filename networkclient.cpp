@@ -47,9 +47,11 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::str
     connectionId = clientId;
     wasDisconnected = false;
 
-    qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
+    qDebug() << "Creating socket to port: " << port << " on thread: " << QThread::currentThreadId();
 
     auto s = new QTcpSocket();
+
+    setSocket(s);
 
     s->connectToHost(host.c_str(), port);
 
@@ -57,7 +59,7 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::str
     {
         qDebug() << "Connected!";
 
-        setSocket(s);
+
     }
     else
     {
@@ -75,8 +77,6 @@ void NetworkClient::setSocket(QTcpSocket *socket)
     connect(socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(socketStateChanged(QAbstractSocket::SocketState)), Qt::QueuedConnection);
     connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketError(QAbstractSocket::SocketError)), Qt::QueuedConnection);
 
-    qDebug() << socket->socketDescriptor() << " Socket connected";
-
     socket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
 }
 
@@ -92,22 +92,53 @@ NetworkClient::~NetworkClient()
 
 void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
 {
-    qDebug() << "Socket State Changed: " << (int)ss;
+    string state = "Unknown";
+    switch (ss) {
+    case QAbstractSocket::UnconnectedState: state = "UnconnectedState"; break;
+    case QAbstractSocket::HostLookupState : state = "HostLookupState"; break;
+    case QAbstractSocket::ConnectingState : state = "ConnectingState"; break;
+    case QAbstractSocket::ConnectedState  : state = "ConnectedState"; break;
+    case QAbstractSocket::BoundState      : state = "BoundState"; break;
+    case QAbstractSocket::ListeningState  : state = "ListeningState"; break;
+    case QAbstractSocket::ClosingState    : state = "ClosingState"; break;
+    }
+    qDebug() << "Socket State Changed: " << state.c_str();
 }
 
 void NetworkClient::socketError(QAbstractSocket::SocketError se)
 {
-    qDebug() << "Socket Error Signal: " << (int)se;
+    string errMsg;
+    switch (se) {
+    case QAbstractSocket::ConnectionRefusedError          : errMsg = "ConnectionRefusedError"; break;
+    case QAbstractSocket::RemoteHostClosedError           : errMsg = "RemoteHostClosedError"; break;
+    case QAbstractSocket::HostNotFoundError               : errMsg = "HostNotFoundError"; break;
+    case QAbstractSocket::SocketAccessError               : errMsg = "SocketAccessError"; break;
+    case QAbstractSocket::SocketResourceError             : errMsg = "SocketResourceError"; break;
+    case QAbstractSocket::SocketTimeoutError              : errMsg = "SocketTimeoutError"; break;
+    case QAbstractSocket::DatagramTooLargeError           : errMsg = "DatagramTooLargeError"; break;
+    case QAbstractSocket::NetworkError                    : errMsg = "NetworkError"; break;
+    case QAbstractSocket::AddressInUseError               : errMsg = "AddressInUseError"; break;
+    case QAbstractSocket::SocketAddressNotAvailableError  : errMsg = "SocketAddressNotAvailableError"; break;
+    case QAbstractSocket::UnsupportedSocketOperationError : errMsg = "UnsupportedSocketOperationError"; break;
+    case QAbstractSocket::UnfinishedSocketOperationError  : errMsg = "UnfinishedSocketOperationError"; break;
+    case QAbstractSocket::ProxyAuthenticationRequiredError: errMsg = "ProxyAuthenticationRequiredError"; break;
+    case QAbstractSocket::SslHandshakeFailedError         : errMsg = "SslHandshakeFailedError"; break;
+    case QAbstractSocket::ProxyConnectionRefusedError     : errMsg = "ProxyConnectionRefusedError"; break;
+    case QAbstractSocket::ProxyConnectionClosedError      : errMsg = "ProxyConnectionClosedError"; break;
+    case QAbstractSocket::ProxyConnectionTimeoutError     : errMsg = "ProxyConnectionTimeoutError"; break;
+    case QAbstractSocket::ProxyNotFoundError              : errMsg = "ProxyNotFoundError"; break;
+    case QAbstractSocket::ProxyProtocolError              : errMsg = "ProxyProtocolError"; break;
+    case QAbstractSocket::OperationError                  : errMsg = "OperationError"; break;
+    case QAbstractSocket::SslInternalError                : errMsg = "SslInternalError"; break;
+    case QAbstractSocket::SslInvalidUserDataError         : errMsg = "SslInvalidUserDataError"; break;
+    case QAbstractSocket::TemporaryError                  : errMsg = "TemporaryError"; break;
+    default: errMsg = "UnknownSocketError"; break;
+    }
+
+    server->socketStateChange(connectionId, -1, errMsg);
+
+    qDebug() << "Socket Error Signal: " << errMsg.c_str();
 }
-
-/*
-
-Fire();
-Scan(fieldOfView); // maximum field of view is given by maxFieldOfView function
-Move(speed);       // maximum speed is given by maxSpeed function
-Turn(radians);
-
-*/
 
 void NetworkClient::queueToSend(const std::string& data)
 {
@@ -178,48 +209,7 @@ void NetworkClient::sendQueued()
         outgoingData.clear();
     }
 }
-/*
 
-bool NetworkClient::handleCommand()
-{
-    //cout << "RemoteAI::handleCommand on Thread: " << QThread::currentThreadId() << endl;
-
-    std::unique_lock<std::mutex> lock(botLock);
-
-    if (!botCv.wait_for(lock, std::chrono::milliseconds(10000), [this]{ return gotResponse || wasDisconnected ; }))
-    {
-        cout << "timeout" << endl;
-        // timeout, apparently
-        setDisconnected();
-        return false;
-    }
-
-    if (wasDisconnected)
-    {
-        cout << "wasDisconnected" << endl;
-        return false;
-    }
-
-    if (gotResponse)
-    {
-        gotResponse = false;
-
-        if (!response.empty())
-        {
-            string cmd;
-            swap(cmd, response);
-            return handleCommand(cmd);
-        }
-
-        cout << "Unexpected thing" << endl;
-        return false;
-    }
-
-    cout << "Definitely don't expect to get here" << endl;
-
-    return false;
-}
-*/
 
 void NetworkClient::setDisconnected()
 {

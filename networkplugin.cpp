@@ -31,6 +31,8 @@ void NetworkPlugin::requestConnection(const std::string& host, int port)
 
 void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
 {
+    qDebug() << "Plugin Called on thread " << QThread::currentThreadId();
+
     // TODO error handling
     switch (arg1) {
     case 1: // send data
@@ -46,24 +48,37 @@ void NetworkPlugin::update(std::function<void(const std::string&, int, int, int,
 {
 
     if (!started) {
-        server->startServer();
+        qDebug() << "NOT STARTING SERVER\n";
+        //server->startServer();
         started = true;
     }
 
     server->sendAllQueued();
 
-    for (auto& data : receivedData) {
+    for (const auto& data : receivedData) {
         qDebug() << "Sending an event\n";
         sendEvent("TCP", 0, 0, data.id, data.data);
     }
 
-    for (auto& conn : requestedConnections) {
+    for (const auto& change : stateChanges) {
+        sendEvent("TCP_STATE", change.state, 0, change.id, change.msg);
+    }
+
+    for (const auto& conn : requestedConnections) {
         server->connect(conn.data, conn.id);
     }
 
+    stateChanges.clear();
     requestedConnections.clear();
     receivedData.clear();
 }
+
+void NetworkPlugin::onSocketStateChange(int connectionId, int state, const std::string& msg)
+{
+    qDebug() << connectionId << " Got state change " << state << " " << msg.c_str();
+    stateChanges.push_back({connectionId, state, msg});
+}
+
 
 void NetworkPlugin::receiver(int connectionId, const std::string& data)
 {

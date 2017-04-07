@@ -16,6 +16,13 @@ class NetworkPlugin : public mssm::Plugin
         std::string data;
     };
 
+    class SocketStateChange {
+    public:
+        int id;
+        int state;
+        std::string msg;
+    };
+
     Q_OBJECT
 
     std::unique_ptr<NetworkServer> server;
@@ -24,6 +31,7 @@ class NetworkPlugin : public mssm::Plugin
 
     std::vector<NetworkData> receivedData;
     std::vector<NetworkData> requestedConnections;
+    std::vector<SocketStateChange> stateChanges;
 
 public:
     explicit NetworkPlugin(QObject *parent = 0);
@@ -36,6 +44,8 @@ public:
     void requestConnection(const std::string& host, int port);
 
     void receiver(int connectionId, const std::string& data);
+
+    void onSocketStateChange(int connectionId, int state, const std::string& msg);
 };
 
 #endif // NETWORKCONNECTION_H

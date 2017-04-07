@@ -15,6 +15,10 @@ void graphicsMain(Graphics& g)
 
     int networkServerId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
 
+    g.draw(); // make sure plugin is actually registered
+
+    g.callPlugin(networkServerId, 2, 1222, "localhost");
+
     while (g.draw())
     {
         auto events = g.events();
