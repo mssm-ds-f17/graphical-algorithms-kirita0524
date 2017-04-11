@@ -18,6 +18,7 @@ class Widget : public QWidget
     Q_OBJECT
 
     mssm::Graphics *_graphics;
+public:
     Window   *_parent;
 
 public:

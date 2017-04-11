@@ -728,6 +728,13 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
         sounds.clear();
     }
 
+
+    if (!stringOutput.empty())
+    {
+        ((Widget*)pd)->_parent->appendOutputText(stringOutput);
+        stringOutput.clear();
+    }
+
     if (finished)
     {
         if (cleared)
@@ -1162,11 +1169,6 @@ void Widget::paintEvent(QPaintEvent *event)
 
     _graphics->setMousePos(cursorPos.x(), cursorPos.y());
 
-    auto str = _graphics->getOutputText();
-    if (!str.empty())
-    {
-        _parent->appendOutputText(str);
-    }
 }
 
 ModKey cvtMods(Qt::KeyboardModifiers qmods)

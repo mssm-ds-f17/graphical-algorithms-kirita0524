@@ -104,8 +104,8 @@ void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
     case QAbstractSocket::ClosingState    : state = "ClosingState"; break;
     }
 
-    xx
-    server->socketStateChange(connectionId, -1, errMsg);
+    // TODO
+   // server->socketStateChange(connectionId, -1, errMsg);
 
     qDebug() << "Socket State Changed: " << state.c_str();
 }
