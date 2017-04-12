@@ -94,18 +94,40 @@ NetworkClient::~NetworkClient()
 void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
 {
     string state = "Unknown";
+    NetworkSocketState ns = NetworkSocketState::other;
+
     switch (ss) {
-    case QAbstractSocket::UnconnectedState: state = "UnconnectedState"; break;
-    case QAbstractSocket::HostLookupState : state = "HostLookupState"; break;
-    case QAbstractSocket::ConnectingState : state = "ConnectingState"; break;
-    case QAbstractSocket::ConnectedState  : state = "ConnectedState"; break;
-    case QAbstractSocket::BoundState      : state = "BoundState"; break;
-    case QAbstractSocket::ListeningState  : state = "ListeningState"; break;
-    case QAbstractSocket::ClosingState    : state = "ClosingState"; break;
+    case QAbstractSocket::UnconnectedState:
+        state = "UnconnectedState";
+        ns = NetworkSocketState::waiting;
+        break;
+    case QAbstractSocket::HostLookupState :
+        state = "HostLookupState";
+        ns = NetworkSocketState::waiting;
+        break;
+    case QAbstractSocket::ConnectingState :
+        state = "ConnectingState";
+        ns = NetworkSocketState::waiting;
+        break;
+    case QAbstractSocket::ConnectedState  :
+        state = "ConnectedState";
+        ns = NetworkSocketState::connected;
+        break;
+    case QAbstractSocket::BoundState      :
+        state = "BoundState";
+        ns = NetworkSocketState::other;
+        break;
+    case QAbstractSocket::ListeningState  :
+        state = "ListeningState";
+        ns = NetworkSocketState::other;
+        break;
+    case QAbstractSocket::ClosingState    :
+        state = "ClosingState";
+        ns = NetworkSocketState::other;
+        break;
     }
 
-    // TODO
-   // server->socketStateChange(connectionId, -1, errMsg);
+    server->socketStateChange(connectionId, ns, state);
 
     qDebug() << "Socket State Changed: " << state.c_str();
 }
@@ -140,7 +162,7 @@ void NetworkClient::socketError(QAbstractSocket::SocketError se)
     default: errMsg = "UnknownSocketError"; break;
     }
 
-    server->socketStateChange(connectionId, -1, errMsg);
+    server->socketStateChange(connectionId, NetworkSocketState::error, errMsg);
 
     qDebug() << "Socket Error Signal: " << errMsg.c_str();
 }

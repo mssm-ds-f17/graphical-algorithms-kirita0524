@@ -7,6 +7,14 @@
 class NetworkPlugin;
 class NetworkClient;
 
+enum class NetworkSocketState {
+    waiting,
+    connected,
+    error,
+    closed,
+    other
+};
+
 class NetworkServer : public QTcpServer
 {
     Q_OBJECT
@@ -36,7 +44,7 @@ public:
     void receiver(int connectionId, const std::string& data);
     bool queueToSend(int connectionId, const std::string& data);
     void sendAllQueued();
-    void socketStateChange(int connectionId, int state, const std::string& msg);
+    void socketStateChange(int connectionId, NetworkSocketState state, const std::string& msg);
 };
 
 #endif // NETWORKSEVER_H

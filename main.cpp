@@ -21,6 +21,8 @@ void graphicsMain(Graphics& g)
 
     while (g.draw())
     {
+        g.rect(10,10,20,50);
+
         auto events = g.events();
 
         for (unsigned int i = 0; i < events.size(); ++i) {

@@ -15,7 +15,7 @@ NetworkServer::~NetworkServer()
     qDebug() << "NetworkServer destructor\n";
 }
 
-void NetworkServer::socketStateChange(int connectionId, int state, const std::string& msg)
+void NetworkServer::socketStateChange(int connectionId, NetworkSocketState state, const std::string& msg)
 {
     conn.onSocketStateChange(connectionId, state, msg);
 }

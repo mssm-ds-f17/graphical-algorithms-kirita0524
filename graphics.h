@@ -34,6 +34,8 @@ class QWidget;
 class QObject;
 class QWidget;
 
+Q_DECLARE_METATYPE(std::string)
+
 enum class Key
 {
     Left  = 17,
@@ -218,16 +220,19 @@ namespace mssm
         void   line(Vec2d p1, Vec2d p2, Color c = WHITE) { line(p1.x, p1.y, p2.x, p2.y, c); }
 
         void   ellipse(double x, double y, double w, double h, Color c = WHITE, Color f = TRANSPARENT);
-        void   ellipse(Vec2d center, double w, double h, Color c = WHITE, Color f = TRANSPARENT) { ellipse(center.x, center.y, w, h, c, f); }
+        void   ellipse(Vec2d corner, double w, double h, Color c = WHITE, Color f = TRANSPARENT) { ellipse(corner.x, corner.y, w, h, c, f); }
 
         void   arc(double x, double y, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT);
-        void   arc(Vec2d center, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT) { arc(center.x, center.y, w, h, a, alen, c, f); }
+        void   arc(Vec2d corner, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT) { arc(corner.x, corner.y, w, h, a, alen, c, f); }
 
         void   chord(double x, double y, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT);
-        void   chord(Vec2d center, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT) { chord(center.x, center.y, w, h, a, alen, c, f); }
+        void   chord(Vec2d corner, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT) { chord(corner.x, corner.y, w, h, a, alen, c, f); }
 
         void   pie(double x, double y, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT);
-        void   pie(Vec2d center, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT) { pie(center.x, center.y, w, h, a, alen, c, f); }
+        void   pie(Vec2d corner, double w, double h, double a, double alen, Color c = WHITE, Color f = TRANSPARENT) { pie(corner.x, corner.y, w, h, a, alen, c, f); }
+
+        void   rect(double x, double y, double w, double h, Color c = WHITE, Color f = TRANSPARENT);
+        void   rect(Vec2d corner, double w, double h, Color c = WHITE, Color f = TRANSPARENT) { rect(corner.x, corner.y, w, h, c, f); }
 
         void   polygon(std::vector<Vec2d> pts, Color border, Color fill = TRANSPARENT);
         void   polyline(std::vector<Vec2d> pts, Color color);

@@ -10,6 +10,7 @@ NetworkPlugin::NetworkPlugin(QObject *parent) :
     Plugin(parent)
 {
     server.reset(new NetworkServer(*this, this));
+    connect(this, SIGNAL(callMakeConnection(const std::string&, int)), this, SLOT(makeConnection(const std::string&, int)));
 }
 
 NetworkPlugin::~NetworkPlugin()
@@ -26,7 +27,7 @@ bool NetworkPlugin::shouldDelete()
 
 void NetworkPlugin::requestConnection(const std::string& host, int port)
 {
-    requestedConnections.push_back({port, host});
+    emit callMakeConnection(host, port);
 }
 
 void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
@@ -61,28 +62,29 @@ void NetworkPlugin::update(std::function<void(const std::string&, int, int, int,
     }
 
     for (const auto& change : stateChanges) {
-        sendEvent("TCP_STATE", change.state, 0, change.id, change.msg);
-    }
-
-    for (const auto& conn : requestedConnections) {
-        server->connect(conn.data, conn.id);
+        sendEvent("TCP_STATE", static_cast<int>(change.state), 0, change.id, change.msg);
     }
 
     stateChanges.clear();
-    requestedConnections.clear();
     receivedData.clear();
 }
 
-void NetworkPlugin::onSocketStateChange(int connectionId, int state, const std::string& msg)
+void NetworkPlugin::makeConnection(const std::string& host, int port)
 {
-    qDebug() << connectionId << " Got state change " << state << " " << msg.c_str();
+    qDebug() << "makeConnection is on thread: " << QThread::currentThreadId();
+    server->connect(host, port);
+}
+
+void NetworkPlugin::onSocketStateChange(int connectionId, NetworkSocketState state, const std::string& msg)
+{
+    qDebug() << connectionId << " Got state change " << static_cast<int>(state) << " " << msg.c_str() << " " << QThread::currentThreadId();
     stateChanges.push_back({connectionId, state, msg});
 }
 
 
 void NetworkPlugin::receiver(int connectionId, const std::string& data)
 {
-    qDebug() << connectionId << " Got some data: " << QString(data.c_str()) << "\n";
+    qDebug() << connectionId << " Got some data: " << QString(data.c_str()) << " " << QThread::currentThreadId();
     receivedData.push_back({connectionId, data});
 }
 

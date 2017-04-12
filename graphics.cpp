@@ -339,6 +339,17 @@ public:
     virtual void draw(QPainter *painter);
 };
 
+class GrobRect : public Grob
+{
+    QRectF   rect;
+    Color    c;
+    Color    fill;
+public:
+    GrobRect(Vec2d upperLeft, double w, double h, Color outlineColor, Color fillColor = TRANSPARENT)
+        : rect{upperLeft.x, upperLeft.y, w, h}, c{outlineColor}, fill{fillColor} {}
+    virtual void draw(QPainter *painter);
+};
+
 class GrobImage : public Grob
 {
 public:
@@ -415,6 +426,8 @@ Graphics::Graphics(std::string title, int width, int height,
       in{new iStreamBuf([this]() { return getInputText(); })},
       out{new oStreamBuf([this](const std::string& txt) { return appendOutputText(txt); })}
 {   
+    qRegisterMetaType<std::string>();
+
     mersenneTwister.seed((std::chrono::system_clock::now().time_since_epoch()).count()); // should'nt be necesary... bug in GCC?
 
     this->uiFunc   = uiFunc;
@@ -966,6 +979,11 @@ void Graphics::pie(double x, double y, double w, double h, double a, double alen
     addGrob(new GrobEllipse{x,y,w,h,a,alen,3,c,f});
 }
 
+void Graphics::rect(double x, double y, double w, double h, Color c, Color f)
+{
+    addGrob(new GrobRect({x, y}, w, h, c, f));
+}
+
 void Graphics::polygon(std::vector<Vec2d> pts, Color border, Color fill)
 {
     addGrob(new GrobPoly(pts, border, true, fill));
@@ -1066,6 +1084,13 @@ void GrobPoly::draw(QPainter *painter)
     {
         painter->drawPolyline(&points[0], points.size());
     }
+}
+
+void GrobRect::draw(QPainter *painter)
+{
+    painter->setPen(QColor{c.r, c.g, c.b, c.a});
+    painter->setBrush(QBrush(QColor{fill.r, fill.g, fill.b, fill.a}));
+    painter->drawRect(rect);
 }
 
 void GrobPoint::draw(QPainter *painter)
