@@ -27,7 +27,6 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, qintptr socket
     : QObject(), server{server}
 {
     connectionId = clientId;
-    wasDisconnected = false;
 
     qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
     auto s = new QTcpSocket();
@@ -45,7 +44,6 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::str
     : QObject(), server{server}
 {
     connectionId = clientId;
-    wasDisconnected = false;
 
     qDebug() << "Creating socket to port: " << port << " on thread: " << QThread::currentThreadId();
 
@@ -54,19 +52,6 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::str
     setSocket(s);
 
     s->connectToHost(host.c_str(), port);
-
-    //TODO: get rid of this?  Just let it all happen asynchronously
-    if(s->waitForConnected(5000))
-    {
-        qDebug() << "Connected!";
-
-
-    }
-    else
-    {
-        qDebug() << "Failed to connect!";
-        wasDisconnected = true;
-    }
 }
 
 void NetworkClient::setSocket(QTcpSocket *socket)
@@ -209,8 +194,8 @@ void NetworkClient::readyRead()
 
 void NetworkClient::disconnected()
 {
-    qDebug()  << " Disconnected\n";
-    setDisconnected();
+    qDebug()  << " Disconnected NOTIFY SOMEONE!!\n";
+    server->socketStateChange(connectionId, NetworkSocketState::closed, "disconnected");
 }
 
 void NetworkClient::sendQueued()
@@ -235,15 +220,4 @@ void NetworkClient::sendQueued()
 
         outgoingData.clear();
     }
-}
-
-
-void NetworkClient::setDisconnected()
-{
-    wasDisconnected = true;
-}
-
-bool NetworkClient::isDisconnected()
-{
-    return wasDisconnected;
 }

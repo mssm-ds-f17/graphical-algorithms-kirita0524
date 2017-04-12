@@ -72,7 +72,7 @@ namespace mssm
     public:
         int pluginId;
         std::function<Plugin*(QObject*)> factory;
-        std::unique_ptr<Plugin>          plugin;
+        std::shared_ptr<Plugin>          plugin;
     };
 
 
@@ -206,7 +206,7 @@ namespace mssm
         std::ostream out;
 
         int    registerPlugin(std::function<Plugin*(QObject*)> factory); // returns pluginId for use by callPlugin
-        bool   callPlugin(int pluginId, int arg1, int arg2, const std::string& arg3); // Note: plugin won't exist until draw has been called
+        std::shared_ptr<Plugin>   getPlugin(int pluginId);
 
         int    width()  { return _width; }
         int    height() { return _height; }

@@ -487,12 +487,12 @@ Graphics::Graphics(std::string title, int width, int height,
         musicPlayer.reset();
     }
 
-    pendingPlugins.clear();
-    activePlugins.clear();
-
     setClosed();
 
     thread->wait();
+
+    pendingPlugins.clear();
+    activePlugins.clear();
 }
 
 Graphics::~Graphics()
@@ -666,23 +666,22 @@ void Graphics::setMousePos(int x, int y)
 int Graphics::registerPlugin(std::function<Plugin*(QObject*)> factory)
 {
     std::unique_lock<std::mutex> lock(glock);
-    pendingPlugins.push_back(ObjectRegistryEntry{nextPluginId, factory, std::unique_ptr<Plugin>()});
+    pendingPlugins.emplace_back(ObjectRegistryEntry{nextPluginId, factory, std::shared_ptr<Plugin>()});
     return nextPluginId;
 }
 
-bool Graphics::callPlugin(int pluginId, int arg1, int arg2, const std::string& arg3)
+std::shared_ptr<Plugin> Graphics::getPlugin(int pluginId)
 {
     std::unique_lock<std::mutex> lock(glock);
     for (ObjectRegistryEntry& pe : activePlugins)
     {
-        if (pe.pluginId == pluginId && pe.plugin)
+        if (pe.pluginId == pluginId)
         {
-            pe.plugin->call(arg1, arg2, arg3);
-            return true;
+            return pe.plugin;
         }
     }
 
-    return false;
+    return shared_ptr<Plugin>{};
 }
 
 

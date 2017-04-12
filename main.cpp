@@ -17,7 +17,9 @@ void graphicsMain(Graphics& g)
 
     g.draw(); // make sure plugin is actually registered
 
-    g.callPlugin(networkServerId, 2, 1222, "localhost");
+    auto network = static_pointer_cast<NetworkPlugin>(g.getPlugin(networkServerId));
+
+    network->connectSocket("localhost", 1234);
 
     while (g.draw())
     {
@@ -42,7 +44,7 @@ void graphicsMain(Graphics& g)
                 break;
             case EvtType::Message:
                 g.out << "Got some data: " << e.data << endl;
-                g.callPlugin(networkServerId, 1, e.arg, "Response!");
+              //  network->send(e.arg, "Test");
                 break;
             }
         }

@@ -47,7 +47,7 @@ public:
 
     void onSocketStateChange(int connectionId, NetworkSocketState state, const std::string& msg);
 
-    void requestConnection(const std::string& host, int port);
+    void connectSocket(const std::string& host, int port);
 
 public slots:
     void makeConnection(const std::string& host, int port);

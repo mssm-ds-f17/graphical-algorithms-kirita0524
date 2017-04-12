@@ -10,7 +10,7 @@ NetworkPlugin::NetworkPlugin(QObject *parent) :
     Plugin(parent)
 {
     server.reset(new NetworkServer(*this, this));
-    connect(this, SIGNAL(callMakeConnection(const std::string&, int)), this, SLOT(makeConnection(const std::string&, int)));
+    connect(this, SIGNAL(callMakeConnection(const std::string&, int)), this, SLOT(makeConnection(const std::string&, int)), Qt::QueuedConnection);
 }
 
 NetworkPlugin::~NetworkPlugin()
@@ -25,7 +25,7 @@ bool NetworkPlugin::shouldDelete()
     return false;
 }
 
-void NetworkPlugin::requestConnection(const std::string& host, int port)
+void NetworkPlugin::connectSocket(const std::string& host, int port)
 {
     emit callMakeConnection(host, port);
 }
@@ -38,9 +38,6 @@ void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
     switch (arg1) {
     case 1: // send data
         server->queueToSend(arg2, arg3);
-        break;
-    case 2: // make socket connection  (arg2 is port arg3 is hostname)
-        requestConnection(arg3, arg2);
         break;
     }
 }

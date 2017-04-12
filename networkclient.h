@@ -27,8 +27,6 @@ class NetworkClient : public QObject
     QByteArray  incomingData;
     QByteArray  outgoingData;
 
-     bool       wasDisconnected;
-
 public:
 
     NetworkClient(int id, NetworkServer* server, qintptr socketId);
@@ -47,9 +45,6 @@ public slots:
     void disconnected();
     void socketStateChanged(QAbstractSocket::SocketState);
     void socketError(QAbstractSocket::SocketError);
-public:
-    void setDisconnected();
-    bool isDisconnected();
 };
 
 #endif // NETWORKCLIENT_H
