@@ -6,12 +6,9 @@
 using namespace std;
 using namespace mssm;
 
-//g.registerObject(
-//            [url](QObject* parent) { return new FileDownloader(parent, url); });
-
 void graphicsMain(Graphics& g)
 {
-    cout << "Graphics Main" << QThread::currentThreadId() << endl;
+    g.out << "Graphics Main" << QThread::currentThreadId() << endl;
 
     int networkServerId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
 
@@ -29,6 +26,9 @@ void graphicsMain(Graphics& g)
 
         for (unsigned int i = 0; i < events.size(); ++i) {
             Event e = events[i];
+
+            g.out << e << endl;
+
             switch (e.evtType) {
             case EvtType::KeyPress:
                 break;

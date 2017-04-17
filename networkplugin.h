@@ -26,6 +26,7 @@ class NetworkPlugin : public mssm::Plugin
 
     Q_OBJECT
 
+    int serverPort{0};
     std::unique_ptr<NetworkServer> server;
 
     bool started{false};
@@ -34,10 +35,10 @@ class NetworkPlugin : public mssm::Plugin
     std::vector<SocketStateChange> stateChanges;
 
 public:
-    explicit NetworkPlugin(QObject *parent = 0);
+    explicit NetworkPlugin(QObject *parent, int serverPort = 0);
     virtual ~NetworkPlugin();
 
-    void startServer();
+    void startServer();  // do not call from graphicsMain thread
     bool shouldDelete() override;
     void update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent) override;
     void call(int arg1, int arg2, const std::string& arg3) override;

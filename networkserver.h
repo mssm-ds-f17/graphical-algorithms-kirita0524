@@ -29,7 +29,7 @@ public:
     explicit NetworkServer(NetworkPlugin& conn, QObject *parent = 0);
     ~NetworkServer();
 
-    void startServer();
+    void startServer(int port);
     void stopServer();
 
 signals:

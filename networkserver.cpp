@@ -26,9 +26,8 @@ void NetworkServer::stopServer()
     close();
 }
 
-void NetworkServer::startServer()
+void NetworkServer::startServer(int port)
 {
-    int port = 1234;
     if(!this->listen(QHostAddress::Any, port))
     {
         qDebug() << "Could not start server";
@@ -46,7 +45,11 @@ void NetworkServer::incomingConnection(qintptr socketDescriptor)
     // We have a new connection
     qDebug() << "Socket connecting on thread: " << QThread::currentThreadId();
 
-    clients.emplace_back(new NetworkClient(nextClientId++, this, socketDescriptor));
+    clients.emplace_back(new NetworkClient(nextClientId, this, socketDescriptor));
+
+    socketStateChange(nextClientId, NetworkSocketState::connected, "Connected");
+
+    nextClientId++;
 }
 
 int NetworkServer::connect(const std::string& host, int port)
@@ -78,6 +81,8 @@ bool NetworkServer::queueToSend(int connectionId, const std::string& data)
 
 void NetworkServer::sendAllQueued()
 {
+    clients.erase(std::remove_if(clients.begin(), clients.end(), [](std::unique_ptr<NetworkClient>& obj) { return !obj->isConnected(); }), clients.end());
+
     for (auto& client : clients) {
         client->sendQueued();
     }

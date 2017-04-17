@@ -6,8 +6,8 @@
 
 
 
-NetworkPlugin::NetworkPlugin(QObject *parent) :
-    Plugin(parent)
+NetworkPlugin::NetworkPlugin(QObject *parent, int port) :
+    Plugin(parent), serverPort{port}
 {
     server.reset(new NetworkServer(*this, this));
     connect(this, SIGNAL(callMakeConnection(const std::string&, int)), this, SLOT(makeConnection(const std::string&, int)), Qt::QueuedConnection);
@@ -44,10 +44,8 @@ void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
 
 void NetworkPlugin::update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent)
 {
-
-    if (!started) {
-        qDebug() << "NOT STARTING SERVER\n";
-        //server->startServer();
+    if (!started && serverPort) {
+        server->startServer(serverPort);
         started = true;
     }
 

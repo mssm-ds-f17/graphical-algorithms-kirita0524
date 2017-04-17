@@ -12,14 +12,11 @@ class NetworkClient : public QObject
 {
     Q_OBJECT
 
-    //QMutex       mutex;
-
     int            connectionId;
     NetworkServer *server;
 
     std::mutex  commLock;
-    std::mutex  botLock;
-    std::condition_variable botCv;
+
     bool        gotResponse{false};
     std::string response;
 
@@ -35,10 +32,13 @@ public:
 
     void queueToSend(const std::string& data);
     void sendQueued();
-    int id() { return connectionId; }
+    int  id() { return connectionId; }
+
+    bool isConnected() { return socket != nullptr; }
 
 private:
     void setSocket(QTcpSocket *socket);
+    void closeSocket();
 public slots:
 
     void readyRead();

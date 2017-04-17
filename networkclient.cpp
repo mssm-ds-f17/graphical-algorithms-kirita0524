@@ -69,12 +69,21 @@ void NetworkClient::setSocket(QTcpSocket *socket)
 NetworkClient::~NetworkClient()
 {
     qDebug() << "NetworkClient destructing\n";
+    closeSocket();
+}
+
+void NetworkClient::closeSocket()
+{
+    qDebug() << "NetworkClient destructing on thread: " << QThread::currentThreadId() << endl;
     if (socket)
     {
+        socket->disconnectFromHost();
         socket->close();
-        delete socket;
+        socket->deleteLater();
+        socket = nullptr;
     }
 }
+
 
 void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
 {
@@ -167,35 +176,35 @@ void NetworkClient::readyRead()
 {
     qDebug()  << "In readyRead: " << QThread::currentThreadId() << "\n";
 
+    if (!socket) {
+        qDebug() << "Socket already closed\n";
+        return;
+    }
+
     // get the information
     QByteArray newdata = socket->readAll();
 
+    incomingData.append(newdata);
+
+    if (incomingData.endsWith('\n'))
     {
-        std::unique_lock<std::mutex> lock(botLock);
+        response = incomingData.constData();
+        incomingData.clear();
 
-        incomingData.append(newdata);
+        gotResponse = true;
 
-        if (incomingData.endsWith('\n'))
-        {
-            response = incomingData.constData();
-            incomingData.clear();
+        server->receiver(connectionId, response);
 
-            gotResponse = true;
-
-            server->receiver(connectionId, response);
-
-            // will write on server side window
-            qDebug() << " Received Data: " << clean(QByteArray::fromStdString(response));
-        }
-
-        botCv.notify_one();
+        // will write on server side window
+        qDebug() << " Received Data: " << clean(QByteArray::fromStdString(response));
     }
 }
 
 void NetworkClient::disconnected()
 {
-    qDebug()  << " Disconnected NOTIFY SOMEONE!!\n";
+    qDebug()  << " Disconnected NOTIFY SOMEONE!! " << QThread::currentThreadId() << "\n";
     server->socketStateChange(connectionId, NetworkSocketState::closed, "disconnected");
+    closeSocket();
 }
 
 void NetworkClient::sendQueued()

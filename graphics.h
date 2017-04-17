@@ -111,7 +111,10 @@ namespace mssm
         int     arg;
         std::string sender;
         std::string data;
+    public:
     };
+
+    std::ostream& operator<<(std::ostream& os, const Event& evt);
 
     class Grob;
 

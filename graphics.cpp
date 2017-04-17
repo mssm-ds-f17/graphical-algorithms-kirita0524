@@ -555,6 +555,24 @@ bool Graphics::randomTrue(double pct)
     return dist(mersenneTwister) <= pct;
 }
 
+std::ostream& mssm::operator<<(std::ostream& os, const Event& evt)
+{
+    os << "Evt: ";
+
+    switch (evt.evtType) {
+    case EvtType::KeyPress: os << "KeyPress"; break;
+    case EvtType::KeyRelease: os << "KeyRelease"; break;
+    case EvtType::Message: os << "Message"; break;
+    case EvtType::MouseMove: os << "MouseMove"; break;
+    case EvtType::MousePress: os << "MousePress"; break;
+    case EvtType::MouseRelease: os << "MouseRelease"; break;
+    }
+
+    os << " x: " << evt.x << " y: " << evt.y << " arg: " << evt.arg << " data: " << evt.data << " sender: " << evt.sender;
+
+    return os;
+}
+
 void Graphics::handleEvent(int x, int y, EvtType evtType, ModKey mods, int arg, const std::string& sender, const std::string& data)
 {
     std::unique_lock<std::mutex> lock(glock);
