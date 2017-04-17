@@ -7,25 +7,29 @@ using namespace std;
 using namespace mssm;
 
 class NetworkClientWrapper {
-public:
+private:
     Graphics& g;
 
     int networkPluginId;
-    int pluginId;
     int socketId;
 
     int port;
     std::string hostname;
-
-    NetworkClientWrapper(int networkPluginId, Graphics& g, int port, const std::string& hostname)
-      : g{g}, networkPluginId{networkPluginId}, port{port}, hostname{hostname}
-    {
-    }
+public:
+    NetworkClientWrapper(Graphics& g, int port, const std::string& hostname);
 
     bool handleEvent(const Event& evt);
     bool send(const std::string& data);
     bool isConnected() { return socketId; }
+
+    int  pluginId() { return networkPluginId; }
 };
+
+NetworkClientWrapper::NetworkClientWrapper(Graphics& g, int port, const std::string& hostname)
+  : g{g}, port{port}, hostname{hostname}
+{
+    networkPluginId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
+}
 
 bool NetworkClientWrapper::handleEvent(const Event& e)
 {
@@ -58,8 +62,9 @@ bool NetworkClientWrapper::send(const std::string& data)
 {
     if (socketId) {
         g.callPlugin(networkPluginId, NetworkPlugin::CMD_SEND, socketId, data);
+        return true;
     }
-
+    return false;
 }
 
 
@@ -67,9 +72,7 @@ void graphicsMain(Graphics& g)
 {
     g.out << "Graphics Main" << QThread::currentThreadId() << endl;
 
-    int networkPluginId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
-
-    NetworkClientWrapper server(networkPluginId, g, 1234, "localhost");
+    NetworkClientWrapper server(g, 1234, "localhost");
 
     while (g.draw())
     {
@@ -112,7 +115,7 @@ void graphicsMain(Graphics& g)
             case EvtType::PluginCreated:
                 break;
             case EvtType::PluginMessage:
-                if (e.pluginId == networkPluginId) {
+                if (e.pluginId == server.pluginId()) {
                     switch (e.x) {
                     case NetworkPlugin::MSG_DATA:
                         g.out << "MSG_DATA:   Client = " << e.arg << " Data = " << e.data << endl;
