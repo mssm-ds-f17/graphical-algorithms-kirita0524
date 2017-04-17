@@ -54,7 +54,8 @@ enum class EvtType
     MouseMove,
     KeyPress,
     KeyRelease,
-    Message,
+    PluginCreated,
+    PluginMessage,
 };
 
 enum class ModKey
@@ -75,6 +76,14 @@ namespace mssm
         std::shared_ptr<Plugin>          plugin;
     };
 
+    class PluginCall
+    {
+    public:
+        int pluginId;
+        int arg1;
+        int arg2;
+        std::string arg3;
+    };
 
     class Color
     {
@@ -109,7 +118,7 @@ namespace mssm
         int     y;
         ModKey  mods;
         int     arg;
-        std::string sender;
+        int     pluginId;
         std::string data;
     public:
     };
@@ -172,6 +181,7 @@ namespace mssm
         int                                nextPluginId{1};
         std::vector<ObjectRegistryEntry>   pendingPlugins;
         std::vector<ObjectRegistryEntry>   activePlugins;
+        std::vector<PluginCall>            pluginCalls;
 
         std::vector<Event> _events;
         std::vector<Event> _cachedEvents;
@@ -192,7 +202,7 @@ namespace mssm
         Vec2d       _mousePos; // mouse pos at time of last screen repaint
 
         // post event should only be called by the ui thread!
-        void postEvent(int x, int y, EvtType evtType, ModKey mods, int arg, const std::string& sender = std::string(), const std::string& data = std::string());
+        void postEvent(int x, int y, EvtType evtType, ModKey mods, int arg, int pluginId = 0, const std::string& data = std::string());
 
     public:
         Graphics(std::string title, int width, int height,
@@ -203,13 +213,13 @@ namespace mssm
 
         ~Graphics();
 
-        void handleEvent(int x, int y, EvtType evtType, ModKey mods, int arg, const std::string& sender = std::string(), const std::string& data = std::string());
+        void handleEvent(int x, int y, EvtType evtType, ModKey mods, int arg, int pluginId = 0, const std::string& data = std::string());
     public:
         std::istream in;
         std::ostream out;
 
         int    registerPlugin(std::function<Plugin*(QObject*)> factory); // returns pluginId for use by callPlugin
-        std::shared_ptr<Plugin>   getPlugin(int pluginId);
+        void   callPlugin(int pluginId, int arg1, int arg2, const std::string& arg3);
 
         int    width()  { return _width; }
         int    height() { return _height; }

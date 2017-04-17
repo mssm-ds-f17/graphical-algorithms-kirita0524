@@ -51,11 +51,11 @@ void SerialPortReader::call(int /*arg1*/, int /*arg2*/, const std::string& /*arg
 }
 
 
-void SerialPortReader::update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent)
+void SerialPortReader::update(std::function<void(int, int, int, const std::string&)> sendEvent)
 {
     if (readData.size() > 0)
     {
-        sendEvent("SerialData", 0, 0, 0, readData.toStdString());
+        sendEvent(0, 0, 0, readData.toStdString());
         readData.clear();
     }
 }

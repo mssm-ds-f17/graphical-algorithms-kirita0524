@@ -562,27 +562,28 @@ std::ostream& mssm::operator<<(std::ostream& os, const Event& evt)
     switch (evt.evtType) {
     case EvtType::KeyPress: os << "KeyPress"; break;
     case EvtType::KeyRelease: os << "KeyRelease"; break;
-    case EvtType::Message: os << "Message"; break;
+    case EvtType::PluginCreated: os << "PluginCreated"; break;
+    case EvtType::PluginMessage: os << "PluginMessage"; break;
     case EvtType::MouseMove: os << "MouseMove"; break;
     case EvtType::MousePress: os << "MousePress"; break;
     case EvtType::MouseRelease: os << "MouseRelease"; break;
     }
 
-    os << " x: " << evt.x << " y: " << evt.y << " arg: " << evt.arg << " data: " << evt.data << " sender: " << evt.sender;
+    os << " x: " << evt.x << " y: " << evt.y << " arg: " << evt.arg << " data: " << evt.data << " pluginId: " << evt.pluginId;
 
     return os;
 }
 
-void Graphics::handleEvent(int x, int y, EvtType evtType, ModKey mods, int arg, const std::string& sender, const std::string& data)
+void Graphics::handleEvent(int x, int y, EvtType evtType, ModKey mods, int arg, int pluginId, const std::string& data)
 {
     std::unique_lock<std::mutex> lock(glock);
 
-    postEvent(x, y, evtType, mods, arg, sender, data);
+    postEvent(x, y, evtType, mods, arg, pluginId, data);
 }
 
-void Graphics::postEvent(int x, int y, EvtType evtType, ModKey mods, int arg, const std::string& sender, const std::string& data)
+void Graphics::postEvent(int x, int y, EvtType evtType, ModKey mods, int arg, int pluginId, const std::string& data)
 {
-    Event evt{evtType,x,y,mods,arg, sender, data};
+    Event evt{evtType,x,y,mods,arg, pluginId, data};
 
     if (closed)
     {
@@ -688,20 +689,11 @@ int Graphics::registerPlugin(std::function<Plugin*(QObject*)> factory)
     return nextPluginId;
 }
 
-std::shared_ptr<Plugin> Graphics::getPlugin(int pluginId)
+void Graphics::callPlugin(int pluginId, int arg1, int arg2, const string &arg3)
 {
     std::unique_lock<std::mutex> lock(glock);
-    for (ObjectRegistryEntry& pe : activePlugins)
-    {
-        if (pe.pluginId == pluginId)
-        {
-            return pe.plugin;
-        }
-    }
-
-    return shared_ptr<Plugin>{};
+    pluginCalls.emplace_back(PluginCall{pluginId, arg1, arg2, arg3});
 }
-
 
 void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int elapsed)
 {
@@ -721,16 +713,29 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
         {
             activePlugins.push_back(std::move(pe));
             activePlugins.back().plugin.reset(activePlugins.back().factory(pd));
+            postEvent(0,0,EvtType::PluginCreated, ModKey{}, 0, pe.pluginId, "Plugin Created");
         }
         pendingPlugins.clear();
+    }
+
+    if (!pluginCalls.empty()) {
+        for (const PluginCall& call : pluginCalls) {
+            for (ObjectRegistryEntry& pe : activePlugins) {
+                if (pe.pluginId == call.pluginId) {
+                    pe.plugin->call(call.arg1, call.arg2, call.arg3);
+                }
+            }
+        }
+        pluginCalls.clear();
     }
 
     for (ObjectRegistryEntry& pe : activePlugins)
     {
         if (pe.plugin)
         {
-            pe.plugin->update([this](const std::string& sender, int x, int y, int arg, const std::string& data)
-            { this->postEvent(x, y, EvtType::Message, ModKey(), arg, sender, data); });
+            int pluginId = pe.pluginId;
+            pe.plugin->update([this, pluginId](int x, int y, int arg, const std::string& data)
+            { this->postEvent(x, y, EvtType::PluginMessage, ModKey(), arg, pluginId, data); });
         }
     }
 

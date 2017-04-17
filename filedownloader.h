@@ -20,7 +20,7 @@ public:
     explicit FileDownloader(QObject *parent, const std::string& url);
     virtual ~FileDownloader();
     bool shouldDelete() override;
-    void update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent) override;
+    void update(std::function<void(int, int, int, const std::string&)> sendEvent) override;
     void call(int arg1, int arg2, const std::string& arg3) override;
 private slots:
     void fileDownloaded(QNetworkReply* pReply);

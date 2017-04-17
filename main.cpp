@@ -6,17 +6,70 @@
 using namespace std;
 using namespace mssm;
 
+class NetworkClientWrapper {
+public:
+    Graphics& g;
+
+    int networkPluginId;
+    int pluginId;
+    int socketId;
+
+    int port;
+    std::string hostname;
+
+    NetworkClientWrapper(int networkPluginId, Graphics& g, int port, const std::string& hostname)
+      : g{g}, networkPluginId{networkPluginId}, port{port}, hostname{hostname}
+    {
+    }
+
+    bool handleEvent(const Event& evt);
+    bool send(const std::string& data);
+    bool isConnected() { return socketId; }
+};
+
+bool NetworkClientWrapper::handleEvent(const Event& e)
+{
+    switch (e.evtType) {
+    case EvtType::PluginCreated:
+        if (e.pluginId == networkPluginId) {
+            g.callPlugin(networkPluginId, NetworkPlugin::CMD_CONNECT, port, hostname);
+            return true;
+        }
+        break;
+    case EvtType::PluginMessage:
+        if (e.pluginId == networkPluginId && e.x == NetworkPlugin::MSG_STATUS) {
+            if (e.y == NetworkPlugin::MSG_STATUS_CONNECTED) {  // connected
+                g.out << "Connected to server" << endl;
+                socketId = e.arg;
+                return true;
+            }
+            else if (e.y == NetworkPlugin::MSG_STATUS_DISCONNECTED) {
+                g.out << "Disconnected from server" << endl;
+                socketId = 0;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool NetworkClientWrapper::send(const std::string& data)
+{
+    if (socketId) {
+        g.callPlugin(networkPluginId, NetworkPlugin::CMD_SEND, socketId, data);
+    }
+
+}
+
+
 void graphicsMain(Graphics& g)
 {
     g.out << "Graphics Main" << QThread::currentThreadId() << endl;
 
-    int networkServerId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
+    int networkPluginId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
 
-    g.draw(); // make sure plugin is actually registered
-
-    auto network = static_pointer_cast<NetworkPlugin>(g.getPlugin(networkServerId));
-
-    network->connectSocket("localhost", 1234);
+    NetworkClientWrapper server(networkPluginId, g, 1234, "localhost");
 
     while (g.draw())
     {
@@ -27,6 +80,10 @@ void graphicsMain(Graphics& g)
         for (unsigned int i = 0; i < events.size(); ++i) {
             Event e = events[i];
 
+            if (server.handleEvent(e)) {
+                continue;
+            }
+
             g.out << e << endl;
 
             switch (e.evtType) {
@@ -35,17 +92,33 @@ void graphicsMain(Graphics& g)
             case EvtType::KeyRelease:
                 break;
             case EvtType::MouseMove:
+                if (server.isConnected()) {
+                    stringstream ss;
+                    ss << e.x << " " << e.y << "\n";
+                    server.send(ss.str());
+                }
                 break;
             case EvtType::MousePress:
+                if (server.isConnected()) {
+                    stringstream ss;
+                    ss << e.x << " " << e.y << "\n";
+                    server.send(ss.str());
+                }
                 g.line(0,0,e.x, e.y);
                 g.out << e.x << endl;
                 break;
             case EvtType::MouseRelease:
                 break;
-            case EvtType::Message:
-                g.out << "Got some data: " << e.data << endl;
-              //  network->send(e.arg, "Test");
+            case EvtType::PluginCreated:
                 break;
+            case EvtType::PluginMessage:
+                if (e.pluginId == networkPluginId) {
+                    switch (e.x) {
+                    case NetworkPlugin::MSG_DATA:
+                        g.out << "MSG_DATA:   Client = " << e.arg << " Data = " << e.data << endl;
+                        break;
+                    }
+                }
             }
         }
     }
@@ -53,7 +126,7 @@ void graphicsMain(Graphics& g)
 
 int main()
 {
-     cout << "Main Thread" << QThread::currentThreadId() << endl;
+    cout << "Main Thread" << QThread::currentThreadId() << endl;
 
-     Graphics g("Graphics App", 300, 300, graphicsMain);
+    Graphics g("Graphics App", 300, 300, graphicsMain);
 }

@@ -20,7 +20,7 @@ public:
 
 private:
     virtual bool shouldDelete() = 0;
-    virtual void update(std::function<void(const std::string&, int, int, int, const std::string&)> sendEvent) = 0;
+    virtual void update(std::function<void(int, int, int, const std::string&)> sendEvent) = 0;
 signals:
 
 public slots:

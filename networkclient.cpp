@@ -74,13 +74,14 @@ NetworkClient::~NetworkClient()
 
 void NetworkClient::closeSocket()
 {
-    qDebug() << "NetworkClient destructing on thread: " << QThread::currentThreadId() << endl;
+    qDebug() << "closeSocket on thread: " << QThread::currentThreadId() << endl;
     if (socket)
     {
-        socket->disconnectFromHost();
-        socket->close();
-        socket->deleteLater();
+        auto tmp = socket;
         socket = nullptr;
+        tmp->disconnectFromHost();
+        tmp->close();
+        tmp->deleteLater();
     }
 }
 
