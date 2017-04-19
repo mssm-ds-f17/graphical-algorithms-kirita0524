@@ -6,94 +6,6 @@
 using namespace std;
 using namespace mssm;
 
-class NetworkClientPlugin {
-private:
-    Graphics& g;
-
-    int networkPluginId;
-    int socketId;
-
-    int port;
-    std::string hostname;
-public:
-    NetworkClientPlugin(Graphics& g, int port, const std::string& hostname);
-
-    bool handleEvent(const Event& evt, NetworkSocketEvent& socketEvent, string& data);
-    bool send(const std::string& data);
-    bool isConnected() { return socketId; }
-    int  pluginId() { return networkPluginId; }
-};
-
-NetworkClientPlugin::NetworkClientPlugin(Graphics& g, int port, const std::string& hostname)
-  : g{g}, port{port}, hostname{hostname}
-{
-    networkPluginId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
-}
-
-bool NetworkClientPlugin::handleEvent(const Event& e, NetworkSocketEvent& socketEvent, string& data)
-{
-    switch (e.evtType) {
-    case EvtType::PluginCreated:
-        if (e.pluginId == networkPluginId) {
-            g.callPlugin(networkPluginId, NetworkPlugin::CMD_CONNECT, port, hostname);
-            socketEvent = NetworkSocketEvent::other;
-            data = "Plugin Registered";
-            return true;
-        }
-        break;
-    case EvtType::PluginMessage:
-        if (e.pluginId == networkPluginId)
-        {
-            switch (static_cast<NetworkSocketEvent>(e.x))
-            {
-            case NetworkSocketEvent::connected:
-                g.out << "Connected to server" << endl;
-                socketId = e.arg;
-                socketEvent = NetworkSocketEvent::connected;
-                data = e.data;
-                return true;
-            case NetworkSocketEvent::disconnected:
-                g.out << "Disconnected from server" << endl;
-                socketId = 0;
-                socketEvent = NetworkSocketEvent::disconnected;
-                data = e.data;
-                return true;
-            case NetworkSocketEvent::error:
-                g.out << "Error: " << e.arg << " " << e.data << endl;
-                socketEvent = NetworkSocketEvent::error;
-                data = e.data;
-                return true;
-            case NetworkSocketEvent::other:
-                g.out << "Other: " << e.arg << " " << e.data << endl;
-                socketEvent = NetworkSocketEvent::other;
-                data = e.data;
-                return true;
-            case NetworkSocketEvent::data:
-                g.out << "Data: " << e.arg << " " << e.data << endl;
-                socketEvent = NetworkSocketEvent::data;
-                data = e.data;
-                return true;
-            }
-        }
-        break;
-    default:
-        break;
-    }
-    return false;
-}
-
-bool NetworkClientPlugin::send(const std::string& data)
-{
-    if (socketId) {
-        g.callPlugin(networkPluginId, NetworkPlugin::CMD_SEND, socketId, data);
-        return true;
-    }
-    return false;
-}
-
-
-
-
 void graphicsMain(Graphics& g)
 {
    // g.out << "Graphics Main" << QThread::currentThreadId() << endl;
@@ -129,6 +41,14 @@ void graphicsMain(Graphics& g)
                 case NetworkSocketEvent::other:
                     break;
                 case NetworkSocketEvent::data:
+                    {
+                        stringstream ss(socketData);
+                        double x;
+                        double y;
+                        ss >> x;
+                        ss >> y;
+                        g.line(0,0,x,y);
+                    }
                     break;
                 }
 

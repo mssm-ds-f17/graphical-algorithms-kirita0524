@@ -7,6 +7,10 @@
 #include <memory>
 #include "networkserver.h"
 
+namespace mssm {
+class Graphics;
+class Event;
+}
 
 class NetworkPlugin : public mssm::Plugin
 {
@@ -42,6 +46,41 @@ public:
     void receiver(int connectionId, const std::string& data);
 
     void onSocketStateChange(int connectionId, NetworkSocketEvent state, const std::string& msg);
+};
+
+class NetworkServerPlugin {
+public:
+
+protected:
+    mssm::Graphics& g;
+
+    int networkPluginId;
+    int port;
+
+public:
+    NetworkServerPlugin(mssm::Graphics& g, int port);
+
+    bool handleEvent(const mssm::Event& evt, NetworkSocketEvent& netEventType, int& clientId, std::string& data);
+    void send(int clientId, const std::string& data);
+    int  pluginId() { return networkPluginId; }
+};
+
+class NetworkClientPlugin {
+private:
+    mssm::Graphics& g;
+
+    int networkPluginId;
+    int socketId;
+
+    int port;
+    std::string hostname;
+public:
+    NetworkClientPlugin(mssm::Graphics& g, int port, const std::string& hostname);
+
+    bool handleEvent(const mssm::Event& evt, NetworkSocketEvent& socketEvent, std::string& data);
+    bool send(const std::string& data);
+    bool isConnected() { return socketId; }
+    int  pluginId() { return networkPluginId; }
 };
 
 #endif // NETWORKCONNECTION_H
