@@ -28,7 +28,7 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, qintptr socket
 {
     connectionId = clientId;
 
-    qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
+    //qDebug() << "Constructing NetworkClient on Thread: " << QThread::currentThreadId() << endl;
     auto s = new QTcpSocket();
 
     if(!s->setSocketDescriptor(socketId))
@@ -45,7 +45,7 @@ NetworkClient::NetworkClient(int clientId, NetworkServer* server, const std::str
 {
     connectionId = clientId;
 
-    qDebug() << "Creating socket to port: " << port << " on thread: " << QThread::currentThreadId();
+    //qDebug() << "Creating socket to port: " << port << " on thread: " << QThread::currentThreadId();
 
     auto s = new QTcpSocket();
 
@@ -68,13 +68,13 @@ void NetworkClient::setSocket(QTcpSocket *socket)
 
 NetworkClient::~NetworkClient()
 {
-    qDebug() << "NetworkClient destructing\n";
+    //qDebug() << "NetworkClient destructing\n";
     closeSocket();
 }
 
 void NetworkClient::closeSocket()
 {
-    qDebug() << "closeSocket on thread: " << QThread::currentThreadId() << endl;
+    //qDebug() << "closeSocket on thread: " << QThread::currentThreadId() << endl;
     if (socket)
     {
         auto tmp = socket;
@@ -178,7 +178,7 @@ void NetworkClient::readyRead()
     //qDebug()  << "In readyRead: " << QThread::currentThreadId() << "\n";
 
     if (!socket) {
-        qDebug() << "Socket already closed\n";
+        //qDebug() << "Socket already closed\n";
         return;
     }
 

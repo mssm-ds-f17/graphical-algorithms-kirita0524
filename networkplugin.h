@@ -27,12 +27,14 @@ class NetworkPlugin : public mssm::Plugin
     std::unique_ptr<NetworkServer> server;
 
     bool started{false};
+    bool closed{false};
 
     std::vector<NetworkEvent> networkEvents;
 
 public:
     static constexpr int CMD_CONNECT = 1;  // arg2 = port arg3 = hostname
     static constexpr int CMD_SEND    = 2;  // arg2 = client id  arg3 = data
+    static constexpr int CMD_CLOSE_PLUGIN = 3; // shut down the plugin itself
 
     explicit NetworkPlugin(QObject *parent, int serverPort = 0);
     virtual ~NetworkPlugin();
@@ -42,6 +44,7 @@ public:
     void update(std::function<void(int, int, int, const std::string&)> sendEvent) override;
     void call(int arg1, int arg2, const std::string& arg3) override;
 
+    void closePlugin() { closed = true; }
 
     void receiver(int connectionId, const std::string& data);
 
@@ -63,6 +66,8 @@ public:
     bool handleEvent(const mssm::Event& evt, NetworkSocketEvent& netEventType, int& clientId, std::string& data);
     void send(int clientId, const std::string& data);
     int  pluginId() { return networkPluginId; }
+
+    void closePlugin();
 };
 
 class NetworkClientPlugin {
@@ -81,6 +86,8 @@ public:
     bool send(const std::string& data);
     bool isConnected() { return socketId; }
     int  pluginId() { return networkPluginId; }
+
+    void closePlugin();
 };
 
 #endif // NETWORKCONNECTION_H

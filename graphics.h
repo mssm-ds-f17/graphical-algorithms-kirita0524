@@ -55,6 +55,7 @@ enum class EvtType
     KeyPress,
     KeyRelease,
     PluginCreated,
+    PluginClosed,
     PluginMessage,
 };
 

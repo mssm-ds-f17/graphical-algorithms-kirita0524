@@ -19,7 +19,7 @@ NetworkPlugin::~NetworkPlugin()
 
 bool NetworkPlugin::shouldDelete()
 {
-    return false;
+    return closed;
 }
 
 void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
@@ -33,6 +33,9 @@ void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
         break;
     case NetworkPlugin::CMD_CONNECT: // connect to host
         server->connect(arg3, arg2);
+        break;
+    case NetworkPlugin::CMD_CLOSE_PLUGIN:
+        closePlugin();
         break;
     default:
         // TODO  Send message/event back
@@ -82,6 +85,11 @@ NetworkClientPlugin::NetworkClientPlugin(mssm::Graphics& g, int port, const std:
     networkPluginId = g.registerPlugin([](QObject* parent) { return new NetworkPlugin(parent); });
 }
 
+void NetworkClientPlugin::closePlugin()
+{
+    g.callPlugin(networkPluginId, NetworkPlugin::CMD_CLOSE_PLUGIN, 0, "");
+}
+
 bool NetworkClientPlugin::handleEvent(const mssm::Event& e, NetworkSocketEvent& socketEvent, std::string& data)
 {
     switch (e.evtType) {
@@ -99,29 +107,29 @@ bool NetworkClientPlugin::handleEvent(const mssm::Event& e, NetworkSocketEvent& 
             switch (static_cast<NetworkSocketEvent>(e.x))
             {
             case NetworkSocketEvent::connected:
-                g.out << "Connected to server" << std::endl;
+                //g.out << "Connected to server" << std::endl;
                 socketId = e.arg;
                 socketEvent = NetworkSocketEvent::connected;
                 data = e.data;
                 return true;
             case NetworkSocketEvent::disconnected:
-                g.out << "Disconnected from server" << std::endl;
+                //g.out << "Disconnected from server" << std::endl;
                 socketId = 0;
                 socketEvent = NetworkSocketEvent::disconnected;
                 data = e.data;
                 return true;
             case NetworkSocketEvent::error:
-                g.out << "Error: " << e.arg << " " << e.data << std::endl;
+                //g.out << "Error: " << e.arg << " " << e.data << std::endl;
                 socketEvent = NetworkSocketEvent::error;
                 data = e.data;
                 return true;
             case NetworkSocketEvent::other:
-                g.out << "Other: " << e.arg << " " << e.data << std::endl;
+                //g.out << "Other: " << e.arg << " " << e.data << std::endl;
                 socketEvent = NetworkSocketEvent::other;
                 data = e.data;
                 return true;
             case NetworkSocketEvent::data:
-                g.out << "Data: " << e.arg << " " << e.data << std::endl;
+                //g.out << "Data: " << e.arg << " " << e.data << std::endl;
                 socketEvent = NetworkSocketEvent::data;
                 data = e.data;
                 return true;
@@ -147,6 +155,11 @@ NetworkServerPlugin::NetworkServerPlugin(mssm::Graphics& g, int port)
   : g{g}, port{port}
 {
     networkPluginId = g.registerPlugin([port](QObject* parent) { return new NetworkPlugin(parent, port); });
+}
+
+void NetworkServerPlugin::closePlugin()
+{
+    g.callPlugin(networkPluginId, NetworkPlugin::CMD_CLOSE_PLUGIN, 0, "");
 }
 
 bool NetworkServerPlugin::handleEvent(const mssm::Event& e, NetworkSocketEvent& netEventType, int& clientId, std::string& data)
@@ -185,7 +198,7 @@ bool NetworkServerPlugin::handleEvent(const mssm::Event& e, NetworkSocketEvent& 
                 data = e.data;
                 return true;
             case NetworkSocketEvent::data:
-                g.out << "Data: " << e.arg << " " << e.data << endl;
+                //g.out << "Data: " << e.arg << " " << e.data << endl;
                 netEventType = NetworkSocketEvent::data;
                 clientId = e.arg;
                 data = e.data;

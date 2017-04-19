@@ -12,7 +12,7 @@ NetworkServer::NetworkServer(NetworkPlugin& nc, QObject *parent) : QTcpServer(pa
 
 NetworkServer::~NetworkServer()
 {
-    qDebug() << "NetworkServer destructor\n";
+    //qDebug() << "NetworkServer destructor\n";
 }
 
 void NetworkServer::socketStateChange(int connectionId, NetworkSocketEvent state, const std::string& msg)
@@ -34,7 +34,7 @@ void NetworkServer::startServer(int port)
     }
     else
     {
-        qDebug() << "Listening to port " << port << "...";
+        //qDebug() << "Listening to port " << port << "...";
     }
 }
 
@@ -43,7 +43,7 @@ void NetworkServer::startServer(int port)
 void NetworkServer::incomingConnection(qintptr socketDescriptor)
 {
     // We have a new connection
-    qDebug() << "Socket connecting on thread: " << QThread::currentThreadId();
+    //qDebug() << "Socket connecting on thread: " << QThread::currentThreadId();
 
     clients.emplace_back(new NetworkClient(nextClientId, this, socketDescriptor));
 
@@ -55,7 +55,7 @@ void NetworkServer::incomingConnection(qintptr socketDescriptor)
 int NetworkServer::connect(const std::string& host, int port)
 {
     // We have a new connection
-    qDebug() << "Creating socket connection on thread: " << QThread::currentThreadId();
+    //qDebug() << "Creating socket connection on thread: " << QThread::currentThreadId();
 
     clients.emplace_back(new NetworkClient(nextClientId, this, host, port));
 

@@ -563,6 +563,7 @@ std::ostream& mssm::operator<<(std::ostream& os, const Event& evt)
     case EvtType::KeyPress: os << "KeyPress"; break;
     case EvtType::KeyRelease: os << "KeyRelease"; break;
     case EvtType::PluginCreated: os << "PluginCreated"; break;
+    case EvtType::PluginClosed: os << "PluginClosed"; break;
     case EvtType::PluginMessage: os << "PluginMessage"; break;
     case EvtType::MouseMove: os << "MouseMove"; break;
     case EvtType::MousePress: os << "MousePress"; break;
@@ -686,7 +687,7 @@ int Graphics::registerPlugin(std::function<Plugin*(QObject*)> factory)
 {
     std::unique_lock<std::mutex> lock(glock);
     pendingPlugins.emplace_back(ObjectRegistryEntry{nextPluginId, factory, std::shared_ptr<Plugin>()});
-    return nextPluginId;
+    return nextPluginId++;
 }
 
 void Graphics::callPlugin(int pluginId, int arg1, int arg2, const string &arg3)
@@ -736,6 +737,11 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
             int pluginId = pe.pluginId;
             pe.plugin->update([this, pluginId](int x, int y, int arg, const std::string& data)
             { this->postEvent(x, y, EvtType::PluginMessage, ModKey(), arg, pluginId, data); });
+
+            if (pe.plugin->shouldDelete())
+            {
+                postEvent(0, 0, EvtType::PluginClosed, ModKey(), 0, pluginId, "");
+            }
         }
     }
 

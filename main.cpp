@@ -35,6 +35,7 @@ void graphicsMain(Graphics& g)
                 case NetworkSocketEvent::connected:
                     break;
                 case NetworkSocketEvent::disconnected:
+                    server.closePlugin();
                     break;
                 case NetworkSocketEvent::error:
                     break;
