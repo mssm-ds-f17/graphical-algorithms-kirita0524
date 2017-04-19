@@ -33,6 +33,7 @@ void graphicsMain(Graphics& g)
                 switch (socketEvent)
                 {
                 case NetworkSocketEvent::connected:
+                    g.out << "Connected to: " + socketData << std::endl;
                     break;
                 case NetworkSocketEvent::disconnected:
                     server.closePlugin();

@@ -105,7 +105,7 @@ void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
         ns = NetworkSocketEvent::other;
         break;
     case QAbstractSocket::ConnectedState  :
-        state = "ConnectedState";
+        state = socket->peerAddress().toString().toStdString();
         ns = NetworkSocketEvent::connected;
         break;
     case QAbstractSocket::BoundState      :
