@@ -15,7 +15,7 @@ NetworkServer::~NetworkServer()
     qDebug() << "NetworkServer destructor\n";
 }
 
-void NetworkServer::socketStateChange(int connectionId, NetworkSocketState state, const std::string& msg)
+void NetworkServer::socketStateChange(int connectionId, NetworkSocketEvent state, const std::string& msg)
 {
     conn.onSocketStateChange(connectionId, state, msg);
 }
@@ -47,7 +47,7 @@ void NetworkServer::incomingConnection(qintptr socketDescriptor)
 
     clients.emplace_back(new NetworkClient(nextClientId, this, socketDescriptor));
 
-    socketStateChange(nextClientId, NetworkSocketState::connected, "Connected");
+    socketStateChange(nextClientId, NetworkSocketEvent::connected, "Connected");
 
     nextClientId++;
 }

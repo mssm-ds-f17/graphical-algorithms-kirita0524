@@ -346,7 +346,7 @@ class GrobRect : public Grob
     Color    fill;
 public:
     GrobRect(Vec2d upperLeft, double w, double h, Color outlineColor, Color fillColor = TRANSPARENT)
-        : rect{upperLeft.x, upperLeft.y, w, h}, c{outlineColor}, fill{fillColor} {}
+        : rect{upperLeft.x+0.5, upperLeft.y+0.5, w, h}, c{outlineColor}, fill{fillColor} {}
     virtual void draw(QPainter *painter);
 };
 

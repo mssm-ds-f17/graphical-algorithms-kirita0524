@@ -89,42 +89,42 @@ void NetworkClient::closeSocket()
 void NetworkClient::socketStateChanged(QAbstractSocket::SocketState ss)
 {
     string state = "Unknown";
-    NetworkSocketState ns = NetworkSocketState::other;
+    NetworkSocketEvent ns = NetworkSocketEvent::other;
 
     switch (ss) {
     case QAbstractSocket::UnconnectedState:
         state = "UnconnectedState";
-        ns = NetworkSocketState::waiting;
+        ns = NetworkSocketEvent::disconnected;
         break;
     case QAbstractSocket::HostLookupState :
         state = "HostLookupState";
-        ns = NetworkSocketState::waiting;
+        ns = NetworkSocketEvent::other;
         break;
     case QAbstractSocket::ConnectingState :
         state = "ConnectingState";
-        ns = NetworkSocketState::waiting;
+        ns = NetworkSocketEvent::other;
         break;
     case QAbstractSocket::ConnectedState  :
         state = "ConnectedState";
-        ns = NetworkSocketState::connected;
+        ns = NetworkSocketEvent::connected;
         break;
     case QAbstractSocket::BoundState      :
         state = "BoundState";
-        ns = NetworkSocketState::other;
+        ns = NetworkSocketEvent::other;
         break;
     case QAbstractSocket::ListeningState  :
         state = "ListeningState";
-        ns = NetworkSocketState::other;
+        ns = NetworkSocketEvent::other;
         break;
     case QAbstractSocket::ClosingState    :
         state = "ClosingState";
-        ns = NetworkSocketState::other;
+        ns = NetworkSocketEvent::other;
         break;
     }
 
     server->socketStateChange(connectionId, ns, state);
 
-    qDebug() << "Socket State Changed: " << state.c_str();
+    //qDebug() << "Socket State Changed: " << state.c_str();
 }
 
 void NetworkClient::socketError(QAbstractSocket::SocketError se)
@@ -157,9 +157,9 @@ void NetworkClient::socketError(QAbstractSocket::SocketError se)
     default: errMsg = "UnknownSocketError"; break;
     }
 
-    server->socketStateChange(connectionId, NetworkSocketState::error, errMsg);
+    server->socketStateChange(connectionId, NetworkSocketEvent::error, errMsg);
 
-    qDebug() << "Socket Error Signal: " << errMsg.c_str();
+    //qDebug() << "Socket Error Signal: " << errMsg.c_str();
 }
 
 void NetworkClient::queueToSend(const std::string& data)
@@ -168,14 +168,14 @@ void NetworkClient::queueToSend(const std::string& data)
 
     std::unique_lock<std::mutex> lock(commLock);
 
-    qDebug() << "queue data to send: '" << data.c_str() << "'";
+    //qDebug() << "queue data to send: '" << data.c_str() << "'";
 
     outgoingData.append(data.c_str());
 }
 
 void NetworkClient::readyRead()
 {
-    qDebug()  << "In readyRead: " << QThread::currentThreadId() << "\n";
+    //qDebug()  << "In readyRead: " << QThread::currentThreadId() << "\n";
 
     if (!socket) {
         qDebug() << "Socket already closed\n";
@@ -197,14 +197,14 @@ void NetworkClient::readyRead()
         server->receiver(connectionId, response);
 
         // will write on server side window
-        qDebug() << " Received Data: " << clean(QByteArray::fromStdString(response));
+        //qDebug() << " Received Data: " << clean(QByteArray::fromStdString(response));
     }
 }
 
 void NetworkClient::disconnected()
 {
-    qDebug()  << " Disconnected NOTIFY SOMEONE!! " << QThread::currentThreadId() << "\n";
-    server->socketStateChange(connectionId, NetworkSocketState::closed, "disconnected");
+    //qDebug()  << " Disconnected NOTIFY SOMEONE!! " << QThread::currentThreadId() << "\n";
+    server->socketStateChange(connectionId, NetworkSocketEvent::disconnected, "disconnected");
     closeSocket();
 }
 
@@ -214,18 +214,18 @@ void NetworkClient::sendQueued()
 
     if (outgoingData.size() > 0)
     {
-        qDebug() << "Found data to send: "  << outgoingData;
+        //qDebug() << "Found data to send: "  << outgoingData;
 
         if (socket)
         {
             socket->write(outgoingData);
             socket->flush();
 
-            qDebug()  << "Sending Data on Thread: " << QThread::currentThreadId() << "\n";
+            //qDebug()  << "Sending Data on Thread: " << QThread::currentThreadId() << "\n";
         }
         else
         {
-            qDebug() << "Not Sending (disconnected): " << outgoingData;
+            //qDebug() << "Not Sending (disconnected): " << outgoingData;
         }
 
         outgoingData.clear();

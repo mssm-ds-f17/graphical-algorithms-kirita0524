@@ -4,20 +4,17 @@
 #include "graphics.h"
 #include <iostream>
 
-
-
 NetworkPlugin::NetworkPlugin(QObject *parent, int port) :
     Plugin(parent), serverPort{port}
 {
     server.reset(new NetworkServer(*this, this));
-    connect(this, SIGNAL(callMakeConnection(const std::string&, int)), this, SLOT(makeConnection(const std::string&, int)), Qt::QueuedConnection);
 }
 
 NetworkPlugin::~NetworkPlugin()
 {
-    qDebug() << "Closing\n";
+    //qDebug() << "Closing\n";
     server->stopServer();
-    qDebug() << "NetworkConnection destructor\n";
+    //qDebug() << "NetworkConnection destructor\n";
 }
 
 bool NetworkPlugin::shouldDelete()
@@ -27,7 +24,7 @@ bool NetworkPlugin::shouldDelete()
 
 void NetworkPlugin::call(int arg1, int arg2, const std::string& arg3)
 {
-    qDebug() << "Plugin Called on thread " << QThread::currentThreadId();
+    //qDebug() << "Plugin Called on thread " << QThread::currentThreadId();
 
     // TODO error handling
     switch (arg1) {
@@ -57,30 +54,25 @@ void NetworkPlugin::update(std::function<void(int, int, int, const std::string&)
 
     server->sendAllQueued();
 
-    for (const auto& data : receivedData) {
-        qDebug() << "Sending an event\n";
-        sendEvent(NetworkPlugin::MSG_DATA, 0, data.id, data.data);
+    for (const auto& ne : networkEvents) {
+        //qDebug() << "Sending an event\n";
+        sendEvent(static_cast<int>(ne.state), 0, ne.id, ne.data);
     }
 
-    for (const auto& change : stateChanges) {
-        sendEvent(NetworkPlugin::MSG_STATUS, static_cast<int>(change.state), change.id, change.msg);
-    }
-
-    stateChanges.clear();
-    receivedData.clear();
+    networkEvents.clear();
 }
 
-void NetworkPlugin::onSocketStateChange(int connectionId, NetworkSocketState state, const std::string& msg)
+void NetworkPlugin::onSocketStateChange(int connectionId, NetworkSocketEvent state, const std::string& msg)
 {
-    qDebug() << connectionId << " Got state change " << static_cast<int>(state) << " " << msg.c_str() << " " << QThread::currentThreadId();
-    stateChanges.push_back({connectionId, state, msg});
+    //qDebug() << connectionId << " Got state change " << static_cast<int>(state) << " " << msg.c_str() << " " << QThread::currentThreadId();
+    networkEvents.push_back({connectionId, state, msg});
 }
 
 
 void NetworkPlugin::receiver(int connectionId, const std::string& data)
 {
-    qDebug() << connectionId << " Got some data: " << QString(data.c_str()) << " " << QThread::currentThreadId();
-    receivedData.push_back({connectionId, data});
+    //qDebug() << connectionId << " Got some data: " << QString(data.c_str()) << " " << QThread::currentThreadId();
+    networkEvents.push_back({connectionId, NetworkSocketEvent::data, data});
 }
 
 namespace mssm

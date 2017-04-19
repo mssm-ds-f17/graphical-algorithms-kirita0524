@@ -7,11 +7,11 @@
 class NetworkPlugin;
 class NetworkClient;
 
-enum class NetworkSocketState {
-    waiting,
+enum class NetworkSocketEvent {
+    disconnected,
     connected,
+    data,
     error,
-    closed,
     other
 };
 
@@ -44,7 +44,7 @@ public:
     void receiver(int connectionId, const std::string& data);
     bool queueToSend(int connectionId, const std::string& data);
     void sendAllQueued();
-    void socketStateChange(int connectionId, NetworkSocketState state, const std::string& msg);
+    void socketStateChange(int connectionId, NetworkSocketEvent state, const std::string& msg);
 };
 
 #endif // NETWORKSEVER_H
