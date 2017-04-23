@@ -22,7 +22,7 @@ FileDownloader::~FileDownloader()
 
 bool FileDownloader::shouldDelete()
 {
-    return false;
+    return shouldDeletePlugin;
 }
 
 void FileDownloader::call(int /*arg1*/, int /*arg2*/, const std::string& /*arg3*/)
@@ -38,6 +38,7 @@ void FileDownloader::update(std::function<void(int, int, int, const std::string&
         sendEvent(0, 0, 0, m_DownloadedData.toStdString());
         m_DownloadedData.clear();
         downloadComplete = false;
+        shouldDeletePlugin= true;
     }
 }
 

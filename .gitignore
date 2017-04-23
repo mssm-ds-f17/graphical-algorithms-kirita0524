@@ -25,6 +25,9 @@ ui_*.h
 Makefile*
 *build-*
 
+debug
+release
+
 # QtCreator
 
 *.autosave
@@ -35,4 +38,3 @@ Makefile*
 
 # QtCtreator CMake
 CMakeLists.txt.user*
-

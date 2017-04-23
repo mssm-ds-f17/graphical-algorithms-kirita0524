@@ -16,6 +16,7 @@ private:
     QNetworkAccessManager m_WebCtrl;
     QByteArray            m_DownloadedData;
     bool                  downloadComplete;
+    bool                  shouldDeletePlugin{false};
 public:
     explicit FileDownloader(QObject *parent, const std::string& url);
     virtual ~FileDownloader();

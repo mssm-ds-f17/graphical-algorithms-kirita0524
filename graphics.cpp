@@ -189,10 +189,26 @@ bool oStreamBuf::reallyWrite()
 namespace mssm
 {
 
+Sound::Sound(const string &filename)
+    : sound{std::make_shared<SoundInternal>(mssm::findFile(filename))}
+{
+}
+
+Image::Image(int width, int height, Color c)
+{
+    set(width, height, c);
+}
 
 Image::Image(const std::string& filename)
 {
-    pixmap = std::make_shared<QPixmap>(QString::fromStdString(filename));
+    auto fpath = mssm::findFile(filename);
+    if (!fpath.empty()) {
+        pixmap = std::make_shared<QPixmap>(QString::fromStdString(fpath));
+    }
+    else
+    {
+        set(20,20,RED);
+    }
 }
 
 void Image::save(const string &pngFileName)
@@ -202,13 +218,19 @@ void Image::save(const string &pngFileName)
     pixmap->save(&file, "PNG");
 }
 
-void Image::set(std::vector<Color> pixels, int width, int height)
+void Image::set(const std::vector<Color>& pixels, int width, int height)
 {
     QImage img((uchar*)pixels.data(), width, height, QImage::Format_RGBA8888);
 
     pixmap = std::make_shared<QPixmap>();
 
     *pixmap = QPixmap::fromImage(img);
+}
+
+void Image::set(int width, int height, Color c)
+{
+    std::vector<Color> pixels(width*height, c);
+    set(pixels, width, height);
 }
 
 SoundInternal::SoundInternal(const std::string& _filename) : filename(_filename)
@@ -499,14 +521,41 @@ Graphics::~Graphics()
 {
 }
 
-/*
-std::string Graphics::findFile(const std::string& filename)
+
+std::string mssm::findFile(const std::string& filename)
 {
+    auto qfilename = QString::fromStdString(filename);
+
+    QFileInfo check_file(qfilename);
+
+    if (check_file.exists() && check_file.isFile())
+    {
+        return QDir(qfilename).absolutePath().toStdString();
+    }
+
     QDir dir;
 
-    dir.
+    dir.absolutePath();
+
+    if (dir.exists(qfilename)) {
+        return dir.absoluteFilePath(qfilename).toStdString();
+    }
+
+    dir.cd("data");
+
+    if (dir.exists(qfilename)) {
+        return dir.absoluteFilePath(qfilename).toStdString();
+    }
+
+    dir.cdUp();
+    dir.cd("assets");
+
+    if (dir.exists(qfilename)) {
+        return dir.absoluteFilePath(qfilename).toStdString();
+    }
+
+    return "";
 }
-*/
 
 std::string Graphics::currentPath(const std::string& fileName)
 {
@@ -750,9 +799,13 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
 
     if (!musicFile.empty())
     {
+        if (musicPlayer) {
+            QObject::disconnect(musicPlayer.get(), SIGNAL(stateChanged(QMediaPlayer::State)), ((Widget*)pd)->_parent, SLOT(musicStateChanged(QMediaPlayer::State)));
+        }
         musicPlayer.reset(new QMediaPlayer(pd));
         musicPlayer->setMedia(QUrl::fromLocalFile(QString::fromStdString(musicFile)));
         musicPlayer->play();
+        QObject::connect(musicPlayer.get(), SIGNAL(stateChanged(QMediaPlayer::State)), ((Widget*)pd)->_parent, SLOT(musicStateChanged(QMediaPlayer::State)));
         musicFile.clear();
     }
 
@@ -866,16 +919,14 @@ bool Graphics::appendOutputText(const std::string& txt)
     return true;
 }
 
-Sound Graphics::createSound(const std::string& filename)
-{
-    return Sound{std::make_shared<SoundInternal>(filename)};
-}
 
 void Graphics::music(const std::string& filename)
 {
+    qDebug() << "graphicsMain " << QThread::currentThreadId() << endl;
+
     std::unique_lock<std::mutex> lock(glock);
 
-    musicFile = filename;
+    musicFile = findFile(filename);
 }
 
 void Graphics::play(Sound sound)
@@ -1369,6 +1420,12 @@ void Window::textEntered()
     graphicsWidget->setFocus();
 
     cv.notify_all();
+}
+
+void Window::musicStateChanged(QMediaPlayer::State state)
+{
+    qDebug() << "Music State Changed: " << static_cast<int>(state) << " Thread: " << QThread::currentThreadId();
+    graphics->postEvent(0, 0, EvtType::PluginMessage, ModKey{}, state, 0, "MusicPlayer");
 }
 
 namespace mssm

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <QThread>
 
+#include "filedownloader.h"
+
 using namespace std;
 using namespace mssm;
 
@@ -61,6 +63,7 @@ void graphicsMain(Graphics& g)
 
             switch (e.evtType) {
             case EvtType::KeyPress:
+                mssm::download(g, "ftp://ftp.swpc.noaa.gov/pub/weekly/Predict.txt");
                 break;
             case EvtType::KeyRelease:
                 break;
@@ -85,7 +88,9 @@ void graphicsMain(Graphics& g)
             case EvtType::PluginCreated:
                 break;
             case EvtType::PluginMessage:
+                g.out << e << endl;
                 break;
+
             }
         }
     }

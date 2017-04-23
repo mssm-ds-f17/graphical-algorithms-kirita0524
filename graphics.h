@@ -135,15 +135,17 @@ namespace mssm
         std::shared_ptr<QPixmap> pixmap;
     public:
         Image() {}
+        Image(int width, int height, Color c);
         Image(const std::string& filename);
-        void set(std::vector<Color> pixels, int width, int height);
+        void set(const std::vector<Color>& pixels, int width, int height);
+        void set(int width, int height, Color c);
         void save(const std::string& pngFileName);
         friend class Graphics;
     };
 
     class SoundInternal
     {
-    public:
+    private:
         std::string                   filename;
         std::shared_ptr<QSoundEffect> sound;
     public:
@@ -153,12 +155,16 @@ namespace mssm
         int  status();
         void release();
         friend class Graphics;
+        friend class Sound;
     };
 
     class Sound
     {
-    public:
+    private:
         std::shared_ptr<SoundInternal> sound;
+    public:
+        Sound(const std::string& filename);
+        friend class Graphics;
     };
 
     class Graphics
@@ -269,8 +275,6 @@ namespace mssm
         void   image(double x, double y, double w, double h, const Image& image, int srcx, int srcy, int srcw, int srch);
         void   image(Vec2d pos, double w, double h, const Image& img, int srcx, int srcy, int srcw, int srch) { image(pos.x, pos.y, w, h, img, srcx, srcy, srcw, srch); }
 
-        Sound  createSound(const std::string& filename);
-
         void   play(Sound sound);
         void   music(const std::string& filename);
 
@@ -295,8 +299,6 @@ namespace mssm
         std::string currentPath(const std::string& file = "");
         std::string programName();
 
-        //std::string findFile(const std::string& filename);
-
     private:
         void draw(QWidget *pd, QPainter *painter, int width, int height, int elapsed);
         std::string getTitle() { return title; }
@@ -315,6 +317,8 @@ namespace mssm
         friend class ::Widget;
         friend class ::Window;
     };
+
+    std::string findFile(const std::string& filename);
 }
 
 #endif // GROBS_H

@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <QWidget>
+#include <QMediaPlayer>
 
 #include "graphics.h"
 
@@ -62,6 +63,7 @@ public:
 
 public slots:
     void textEntered();
+    void musicStateChanged(QMediaPlayer::State state);
 };
 
 class Worker : public QObject {
