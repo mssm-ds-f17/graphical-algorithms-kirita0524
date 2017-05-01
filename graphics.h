@@ -49,11 +49,13 @@ enum class Key
 
 enum class EvtType
 {
-    MousePress,
-    MouseRelease,
-    MouseMove,
-    KeyPress,
-    KeyRelease,
+    MousePress,   // arg = button,  x and y = mouse pos
+    MouseRelease, // arg = button,  x and y = mouse pos
+    MouseMove,    // arg = button,  x and y = mouse pos
+    MouseWheel,   // arg = delta, x and y = mouse pos
+    KeyPress,     // arg = key
+    KeyRelease,   // arg = key
+    MusicEvent,   // arg:  0 = stopped,  1 = playing,  2 = paused
     PluginCreated,
     PluginClosed,
     PluginMessage,
@@ -122,6 +124,11 @@ namespace mssm
         int     pluginId;
         std::string data;
     public:
+        bool hasCtrl()     { return static_cast<int>(mods) & static_cast<int>(ModKey::Ctrl);  }
+        bool hasAlt()      { return static_cast<int>(mods) & static_cast<int>(ModKey::Alt);   }
+        bool hasShift()    { return static_cast<int>(mods) & static_cast<int>(ModKey::Shift); }
+        char key()         { return arg; }
+        int  mouseButton() { return arg; }
     };
 
     std::ostream& operator<<(std::ostream& os, const Event& evt);
@@ -139,7 +146,10 @@ namespace mssm
         Image(const std::string& filename);
         void set(const std::vector<Color>& pixels, int width, int height);
         void set(int width, int height, Color c);
+        void load(const std::string& fileName);
         void save(const std::string& pngFileName);
+        int width();
+        int height();
         friend class Graphics;
     };
 
@@ -195,10 +205,14 @@ namespace mssm
         std::string title;
         bool        closeOnExit{false};
         bool        closed{false};
-        bool        finished{false};
+        bool        readyToDraw{false};
         bool        isDrawn{false};
         bool        cleared{false};
-        std::chrono::milliseconds::rep start_time;
+        int         framePeriod;
+        std::chrono::milliseconds start_time;
+        std::chrono::system_clock::time_point last_draw_time;
+        std::chrono::milliseconds elapsed; // elapsed time at last draw from previous draw
+        int         elapsed2;
         int         _width{100};
         int         _height{100};
         mssm::Color background;
@@ -279,13 +293,14 @@ namespace mssm
         void   music(const std::string& filename);
 
         void   clear();
-        bool   draw(int delay = 0);
-
+        bool   draw(int msPerFrame = 33);
+        int    elapsedMS() { return elapsed.count(); }
+        int    elapsedMS2() { return elapsed2; }
         void   setCloseOnExit(bool close = true) { closeOnExit = close; }
         bool   isClosed();
         void   waitUntilClosed();
 
-        std::chrono::milliseconds::rep time();
+        std::chrono::milliseconds time();
 
         bool   isKeyPressed(char c) { return isPressed[c]; }
         bool   isKeyPressed(Key k);

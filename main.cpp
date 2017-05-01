@@ -85,12 +85,16 @@ void graphicsMain(Graphics& g)
                 break;
             case EvtType::MouseRelease:
                 break;
+            case EvtType::MouseWheel:
+                break;
             case EvtType::PluginCreated:
+            case EvtType::PluginClosed:
                 break;
             case EvtType::PluginMessage:
                 g.out << e << endl;
                 break;
-
+            case EvtType::MusicEvent:
+                break;
             }
         }
     }

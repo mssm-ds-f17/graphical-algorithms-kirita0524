@@ -211,6 +211,11 @@ Image::Image(const std::string& filename)
     }
 }
 
+void Image::load(const std::string& fileName)
+{
+    *this = Image{fileName};
+}
+
 void Image::save(const string &pngFileName)
 {
     QFile file(pngFileName.c_str());
@@ -231,6 +236,16 @@ void Image::set(int width, int height, Color c)
 {
     std::vector<Color> pixels(width*height, c);
     set(pixels, width, height);
+}
+
+int Image::width()
+{
+    return pixmap ? pixmap->width() : 0;
+}
+
+int Image::height()
+{
+    return pixmap ? pixmap->height() : 0;
 }
 
 SoundInternal::SoundInternal(const std::string& _filename) : filename(_filename)
@@ -436,7 +451,7 @@ void Worker::process()
 
 Graphics::Graphics(std::string title, int width, int height, std::function<void (Graphics&)> mainThreadFunc)
     :
-    Graphics(title, width, height, [mainThreadFunc](Graphics& g, QObject*) { mainThreadFunc(g); })
+      Graphics(title, width, height, [mainThreadFunc](Graphics& g, QObject*) { mainThreadFunc(g); })
 {
 }
 
@@ -448,6 +463,8 @@ Graphics::Graphics(std::string title, int width, int height,
       in{new iStreamBuf([this]() { return getInputText(); })},
       out{new oStreamBuf([this](const std::string& txt) { return appendOutputText(txt); })}
 {   
+    framePeriod = 33;
+
     qRegisterMetaType<std::string>();
 
     mersenneTwister.seed((std::chrono::system_clock::now().time_since_epoch()).count()); // should'nt be necesary... bug in GCC?
@@ -461,9 +478,7 @@ Graphics::Graphics(std::string title, int width, int height,
     this->title = title;
     background = BLACK;
 
-    start_time =
-            std::chrono::duration_cast<std::chrono::milliseconds>
-            (std::chrono::system_clock::now().time_since_epoch()).count();
+    start_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 
     int argc = 0;
 
@@ -617,9 +632,19 @@ std::ostream& mssm::operator<<(std::ostream& os, const Event& evt)
     case EvtType::MouseMove: os << "MouseMove"; break;
     case EvtType::MousePress: os << "MousePress"; break;
     case EvtType::MouseRelease: os << "MouseRelease"; break;
+    case EvtType::MouseWheel: os << "MouseWheel"; break;
+    case EvtType::MusicEvent: os << "MusicEvent"; break;
     }
 
-    os << " x: " << evt.x << " y: " << evt.y << " arg: " << evt.arg << " data: " << evt.data << " pluginId: " << evt.pluginId;
+
+
+    os << " x: " << evt.x << " y: " << evt.y << " arg: " << evt.arg;
+
+    if (static_cast<int>(evt.mods) & static_cast<int>(ModKey::Ctrl))  { os << " <CTRL>";  }
+    if (static_cast<int>(evt.mods) & static_cast<int>(ModKey::Alt))   { os << " <ALT>";   }
+    if (static_cast<int>(evt.mods) & static_cast<int>(ModKey::Shift)) { os << " <SHIFT>"; }
+
+    os << " data: " << evt.data << " pluginId: " << evt.pluginId;
 
     return os;
 }
@@ -745,6 +770,41 @@ void Graphics::callPlugin(int pluginId, int arg1, int arg2, const string &arg3)
     pluginCalls.emplace_back(PluginCall{pluginId, arg1, arg2, arg3});
 }
 
+void Widget::animate()
+{
+    //setUpdatesEnabled(true);
+    update();
+    //setUpdatesEnabled(false);
+
+}
+
+void Widget::paintEvent(QPaintEvent *event)
+{
+    QPainter painter;
+
+    chrono::milliseconds newTime = _graphics->time();
+    chrono::milliseconds elapsed = newTime - lastTime;
+
+    if (elapsed.count() >= _framePeriodMs-1) {
+        lastTime = newTime;
+        _graphics->draw(this, &painter, event->rect().width(), event->rect().height(), elapsed.count());
+        auto lostTime = _graphics->time() - lastTime;
+        if (lostTime.count() < _framePeriodMs) {
+            _timer->start(_framePeriodMs - lostTime.count());
+        }
+        else {
+            update();
+        }
+    }
+    else {
+        _timer->start(_framePeriodMs - elapsed.count());
+    }
+
+    auto cursorPos = mapFromGlobal(QCursor::pos());
+    _graphics->setMousePos(cursorPos.x(), cursorPos.y());
+
+}
+
 void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int elapsed)
 {
     if (uiFunc)
@@ -756,6 +816,8 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
     _height = height;
 
     std::unique_lock<std::mutex> lock(glock);
+
+    ((Widget*)pd)->_framePeriodMs = framePeriod;
 
     if (!pendingPlugins.empty())
     {
@@ -799,13 +861,15 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
 
     if (!musicFile.empty())
     {
-        if (musicPlayer) {
-            QObject::disconnect(musicPlayer.get(), SIGNAL(stateChanged(QMediaPlayer::State)), ((Widget*)pd)->_parent, SLOT(musicStateChanged(QMediaPlayer::State)));
+        if (!musicPlayer) {
+            musicPlayer.reset(new QMediaPlayer(pd));
+            QObject::connect(musicPlayer.get(), SIGNAL(stateChanged(QMediaPlayer::State)), ((Widget*)pd)->_parent, SLOT(musicStateChanged(QMediaPlayer::State)));
         }
-        musicPlayer.reset(new QMediaPlayer(pd));
+        else {
+            musicPlayer->stop();
+        }
         musicPlayer->setMedia(QUrl::fromLocalFile(QString::fromStdString(musicFile)));
         musicPlayer->play();
-        QObject::connect(musicPlayer.get(), SIGNAL(stateChanged(QMediaPlayer::State)), ((Widget*)pd)->_parent, SLOT(musicStateChanged(QMediaPlayer::State)));
         musicFile.clear();
     }
 
@@ -829,7 +893,7 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
         stringOutput.clear();
     }
 
-    if (finished)
+    if (readyToDraw)
     {
         if (cleared)
         {
@@ -843,32 +907,34 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
             std::swap_ranges(active.begin()+oldSize, active.end(), queued.begin());
         }
         queued.clear();
-    }
+        //}
 
-    if (!closed)
-    {
-        painter->begin(pd);
-        painter->setRenderHint(QPainter::Antialiasing);
-
-        QBrush qbg = QBrush(QColor(background.r, background.g, background.b));
-
-        painter->fillRect(0, 0, width, height, qbg);
-
-        for (auto& g : active)
+        if (!closed)
         {
-            g->draw(painter);
+            painter->begin(pd);
+            painter->setRenderHint(QPainter::Antialiasing);
+
+            QBrush qbg = QBrush(QColor(background.r, background.g, background.b));
+
+            painter->fillRect(0, 0, width, height, qbg);
+
+            for (auto& g : active)
+            {
+                g->draw(painter);
+            }
+
+            painter->end();
         }
 
-        painter->end();
-    }
-
-    if (finished)
-    {
-        finished = false;
+        //   if (finished)
+        // {
+        readyToDraw = false;
         isDrawn = true;
+        elapsed2 = elapsed;
+        cv.notify_all();
     }
 
-    cv.notify_all();
+
 }
 
 const std::vector<Event>& Graphics::events()
@@ -941,15 +1007,8 @@ void Graphics::play(Sound sound)
     sounds.push_back(sound);
 }
 
-bool Graphics::draw(int minSleepTime)
+bool Graphics::draw(int msPerFrame)
 {
-    std::chrono::system_clock::time_point endTime;
-
-    if (minSleepTime)
-    {
-        endTime = std::chrono::system_clock::now() + std::chrono::milliseconds(minSleepTime);
-    }
-
     {
         std::unique_lock<std::mutex> lock(glock);
 
@@ -959,25 +1018,27 @@ bool Graphics::draw(int minSleepTime)
             _cachedEvents.clear();
         }
 
+        readyToDraw = true;
 
-        finished = true;
+        framePeriod = msPerFrame;
 
         cv.wait(lock, [this]{ return isDrawn || closed; });
 
         isDrawn = false;
-
-        if (closed)
-        {
-            return false;
-        }
     }
 
-    if (minSleepTime)
+    if (last_draw_time.time_since_epoch().count() == 0) {
+        elapsed = chrono::milliseconds{msPerFrame};
+        last_draw_time = std::chrono::system_clock::now();
+    }
+    else
     {
-        std::this_thread::sleep_until(endTime);
+        chrono::system_clock::time_point thisTime = std::chrono::system_clock::now();
+        elapsed = std::chrono::duration_cast<chrono::milliseconds>(thisTime-last_draw_time);
+        last_draw_time = thisTime;
     }
 
-    return true;
+    return !closed;
 }
 
 
@@ -1089,11 +1150,11 @@ void Graphics::points(std::vector<Vec2d> pts, Color c)
 }
 
 
-std::chrono::milliseconds::rep Graphics::time()
+std::chrono::milliseconds Graphics::time()
 {
     auto milliseconds_since_epoch =
             std::chrono::duration_cast<std::chrono::milliseconds>
-            (std::chrono::system_clock::now().time_since_epoch()).count();
+            (std::chrono::system_clock::now().time_since_epoch());
 
     return milliseconds_since_epoch - start_time;
 }
@@ -1245,6 +1306,8 @@ void GrobImage::draw(QPainter *painter)
 Widget::Widget(mssm::Graphics *graphics, Window *parent)
     : QWidget(parent), _graphics(graphics), _parent(parent)
 {
+    _framePeriodMs = graphics->framePeriod;
+
     lastTime = graphics->time();
 
     setMinimumHeight(graphics->height());
@@ -1252,28 +1315,19 @@ Widget::Widget(mssm::Graphics *graphics, Window *parent)
 
     setFocusPolicy(Qt::StrongFocus);
     setFocus();
+
+    setAttribute(Qt::WA_OpaquePaintEvent);
+    //setUpdatesEnabled(false);
+
+    _timer = new QTimer(this);
+    connect(_timer, SIGNAL(timeout()), this, SLOT(animate()));
+    _timer->setSingleShot(true);
+    _timer->start(_framePeriodMs);
 }
 
-void Widget::animate()
-{
-    update();
-}
 
-void Widget::paintEvent(QPaintEvent *event)
-{
-    QPainter painter;
 
-    auto newTime = _graphics->time();
-    auto elapsed = newTime - lastTime;
-    lastTime = newTime;
 
-    _graphics->draw(this, &painter, event->rect().width(), event->rect().height(), elapsed);
-
-    auto cursorPos = mapFromGlobal(QCursor::pos());
-
-    _graphics->setMousePos(cursorPos.x(), cursorPos.y());
-
-}
 
 ModKey cvtMods(Qt::KeyboardModifiers qmods)
 {
@@ -1283,6 +1337,13 @@ ModKey cvtMods(Qt::KeyboardModifiers qmods)
                 ((qmods & Qt::ShiftModifier) ? (int)ModKey::Shift : 0));
 
     return mods;
+}
+
+void Widget::wheelEvent(QWheelEvent * event)
+{
+    _graphics->handleEvent(event->x(), event->y(), EvtType::MouseWheel,
+                           cvtMods(event->modifiers()),
+                           (int)event->delta());
 }
 
 void Widget::mousePressEvent(QMouseEvent * event)
@@ -1308,16 +1369,20 @@ void Widget::mouseMoveEvent(QMouseEvent * event)
 
 void Widget::keyPressEvent(QKeyEvent * event)
 {
-    _graphics->handleEvent(0, 0, EvtType::KeyPress,
-                           cvtMods(event->modifiers()),
-                           event->key());
+    if (!event->isAutoRepeat()) {
+        _graphics->handleEvent(0, 0, EvtType::KeyPress,
+                               cvtMods(event->modifiers()),
+                               event->key());
+    }
 }
 
 void Widget::keyReleaseEvent(QKeyEvent * event)
 {
-    _graphics->handleEvent(0,0, EvtType::KeyRelease,
-                           cvtMods(event->modifiers()),
-                           event->key());
+    if (!event->isAutoRepeat()) {
+        _graphics->handleEvent(0,0, EvtType::KeyRelease,
+                               cvtMods(event->modifiers()),
+                               event->key());
+    }
 }
 
 Window::Window(mssm::Graphics *g, std::string title)
@@ -1350,9 +1415,6 @@ Window::Window(mssm::Graphics *g, std::string title)
 
     setLayout(layout);
 
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), graphicsWidget, SLOT(animate()));
-    timer->start(24);
 }
 
 void Window::appendOutputText(const std::string& txt)
@@ -1425,7 +1487,26 @@ void Window::textEntered()
 void Window::musicStateChanged(QMediaPlayer::State state)
 {
     qDebug() << "Music State Changed: " << static_cast<int>(state) << " Thread: " << QThread::currentThreadId();
-    graphics->postEvent(0, 0, EvtType::PluginMessage, ModKey{}, state, 0, "MusicPlayer");
+
+    const char *msg = "";
+    int stateNum = 0;
+
+    switch (state) {
+    case QMediaPlayer::PausedState:
+        msg = "MusicPaused";
+        stateNum = 2;
+        break;
+    case QMediaPlayer::PlayingState:
+        msg = "MusicPlaying";
+        stateNum = 1;
+        break;
+    case QMediaPlayer::StoppedState:
+        msg = "MusicStopped";
+        stateNum = 0;
+        break;
+    }
+
+    graphics->postEvent(0, 0, EvtType::MusicEvent, ModKey{}, stateNum, 0, msg);
 }
 
 namespace mssm

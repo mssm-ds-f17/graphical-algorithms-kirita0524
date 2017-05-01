@@ -21,7 +21,8 @@ class Widget : public QWidget
     mssm::Graphics *_graphics;
 public:
     Window   *_parent;
-
+    QTimer   *_timer;
+    int       _framePeriodMs;
 public:
     Widget(mssm::Graphics *graphics, Window *parent);
 
@@ -29,6 +30,7 @@ public slots:
     void animate();
 
 protected:
+    void wheelEvent(QWheelEvent * event) override;
     void paintEvent(QPaintEvent * event) override;
     void mousePressEvent(QMouseEvent * event) override ;
     void mouseReleaseEvent(QMouseEvent * event) override ;
@@ -36,7 +38,7 @@ protected:
     void keyPressEvent(QKeyEvent * event) override;
     void keyReleaseEvent(QKeyEvent * event) override;
 private:
-    std::chrono::milliseconds::rep lastTime;
+    std::chrono::milliseconds lastTime;
 };
 
 class Window : public QWidget

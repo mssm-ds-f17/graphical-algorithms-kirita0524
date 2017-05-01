@@ -30,3 +30,6 @@ HEADERS  += \
     networkplugin.h \
     networkserver.h
 
+DISTFILES += \
+    .gitignore
+
