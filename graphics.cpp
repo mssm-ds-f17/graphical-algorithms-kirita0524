@@ -190,8 +190,15 @@ namespace mssm
 {
 
 Sound::Sound(const string &filename)
-    : sound{std::make_shared<SoundInternal>(mssm::findFile(filename))}
 {
+    auto fpath = mssm::findFile(filename);
+    if (!fpath.empty()) {
+        sound = std::make_shared<SoundInternal>(fpath);
+    }
+    else
+    {
+        qDebug() << "Error loading sound " << filename.c_str();
+    }
 }
 
 Image::Image(int width, int height, Color c)
@@ -552,21 +559,36 @@ std::string mssm::findFile(const std::string& filename)
 
     dir.absolutePath();
 
-    if (dir.exists(qfilename)) {
-        return dir.absoluteFilePath(qfilename).toStdString();
-    }
+    int tryAgain = true;
 
-    dir.cd("data");
+    while (tryAgain) {
+        tryAgain = false;
 
-    if (dir.exists(qfilename)) {
-        return dir.absoluteFilePath(qfilename).toStdString();
-    }
+        if (dir.exists(qfilename)) {
+            return dir.absoluteFilePath(qfilename).toStdString();
+        }
 
-    dir.cdUp();
-    dir.cd("assets");
-
-    if (dir.exists(qfilename)) {
-        return dir.absoluteFilePath(qfilename).toStdString();
+        if (dir.exists("data")) {
+            dir.cd("data");
+            tryAgain = true;
+        }
+        else if (dir.exists("assets")) {
+            dir.cd("assets");
+            tryAgain = true;
+        }
+#ifdef QT_DEBUG
+        else if (dir.exists("debug"))
+        {
+            dir.cd("debug");
+            tryAgain = true;
+        }
+#else
+        else if (dir.exists("release"))
+        {
+            dir.cd("release");
+            tryAgain = true;
+        }
+#endif
     }
 
     return "";
@@ -877,7 +899,7 @@ void Graphics::draw(QWidget *pd, QPainter *painter, int width, int height, int e
     {
         for (Sound& s : sounds)
         {
-            if (s.sound->play(pd))
+            if (s.sound && s.sound->play(pd))
             {
                 soundCache.push_back(s);
             }
@@ -988,11 +1010,14 @@ bool Graphics::appendOutputText(const std::string& txt)
 
 void Graphics::music(const std::string& filename)
 {
-    qDebug() << "graphicsMain " << QThread::currentThreadId() << endl;
-
     std::unique_lock<std::mutex> lock(glock);
 
     musicFile = findFile(filename);
+
+    if (!filename.empty() && musicFile.empty())
+    {
+        out << "Could not find music file: " << filename << endl;
+    }
 }
 
 void Graphics::play(Sound sound)
